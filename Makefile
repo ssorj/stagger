@@ -1,7 +1,7 @@
-.PHONY: build
+.PHONY: test
 build:
-	scripts/smoke-test
+	scripts/test
 
 .PHONY: run
 run:
-	python3 app.py
+	python3 server/app.py
