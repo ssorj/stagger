@@ -30,6 +30,7 @@ try:
     call("curl -X PUT --data-ascii '{{\"abc\": 123}}' http://localhost:8080/api/tags/rh-qpid-proton-j:master:untested")
     call("curl -X GET http://localhost:8080/api/tags/rh-qpid-proton-j:master:untested", quiet=True)
     call("curl -X DELETE http://localhost:8080/api/tags/rh-qpid-proton-j:master:untested")
+    call("curl -X PUT --data-ascii '{{\"abc\": 123}}' http://localhost:8080/api/tags/rh-qpid-proton-j:master:untested")
     call("curl -X GET http://localhost:8080/api/tags", quiet=True)
 finally:
     terminate_process(server)

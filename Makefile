@@ -1,5 +1,5 @@
 .PHONY: test
-build:
+test:
 	scripts/test
 
 .PHONY: run
