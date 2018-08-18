@@ -4,4 +4,4 @@ test:
 
 .PHONY: run
 run:
-	python3 server/app.py
+	python3 app.py

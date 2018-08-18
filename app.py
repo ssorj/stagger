@@ -18,12 +18,14 @@
 #
 
 import logging as _logging
+import os as _os
 
 from data import *
 from starlette import *
 from starlette.routing import *
+from starlette.staticfiles import *
 
-_log = _logging.getLogger("data")
+_log = _logging.getLogger("app")
 
 _data = None
 _not_found = Response("Not found", 404, media_type="text/plain")
@@ -87,13 +89,20 @@ async def serve_artifact(request):
 
 if __name__ == "__main__":
     router = Router([
-        Path("/api/tags", app=serve_tag_index, methods=["GET"]),
-        Path("/api/tags/{tag_id}", app=serve_tag, methods=["PUT", "GET", "DELETE"]),
-        Path("/api/tags/{tag_id}/artifacts", app=serve_artifact_index, methods=["GET"]),
-        Path("/api/tags/{tag_id}/artifacts/{artifact_name}", app=serve_artifact, methods=["GET"]),
+        Path("/", StaticFile(path="static/index.html")),
+        Path("/app.css", StaticFile(path="static/app.css")),
+        Path("/app.js", StaticFile(path="static/app.js")),
+        Path("/gesso.js", StaticFile(path="static/gesso.js")),
+        Path("/api/tags/?", app=serve_tag_index, methods=["GET"]),
+        Path("/api/tags/{tag_id}/?", app=serve_tag, methods=["PUT", "GET", "DELETE"]),
+        Path("/api/tags/{tag_id}/artifacts/?", app=serve_artifact_index, methods=["GET"]),
+        Path("/api/tags/{tag_id}/artifacts/{artifact_name}/?", app=serve_artifact, methods=["GET"]),
     ])
 
-    _data = Data("data.json")
+    if not _os.path.exists("data"):
+        _os.makedirs("data")
+
+    _data = Data("data/data.json")
     _data.load()
     _data.save_thread.start()
 
