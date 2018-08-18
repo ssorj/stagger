@@ -20,17 +20,47 @@
 
 from plano import *
 
-enable_logging(level="notice")
+enable_logging(level="warn")
 
 server = start_process("python3 server/app.py")
+
+tag_1 = {
+    "repository": "rh-qpid-jms",
+    "repository_url": "http://git.host.prod.eng.bos.redhat.com/git/rh-qpid-jms.git",
+    "branch": "0.34.0-amq",
+    "name": "tested",
+    "commit": "16dc03dc8075e6600342b1dcdcafc5d28b7ffde5",
+    "artifacts": {
+        "client-maven": {
+            "type": "maven",
+            "group": "org.apache.qpid",
+            "artifact": "qpid-jms-client",
+            "version": "0.34.0.redhat-00002",
+            "repository_url": "http://download-node-02.eng.bos.redhat.com/devel/candidates/amq/AMQ-CLIENTS-2.1.0/JMS-maven-repo/maven-repository",
+        },
+        "client-zip": {
+            "type": "file",
+            "url": "http://download-node-02.eng.bos.redhat.com/devel/candidates/amq/AMQ-CLIENTS-2.1.0/qpid-jms-0.34.0.redhat-00002-bin.zip",
+        },
+    },
+}
 
 try:
     sleep(0.5)
 
-    call("curl -X PUT --data-ascii '{{\"abc\": 123}}' http://localhost:8080/api/tags/rh-qpid-proton-j:master:untested")
-    call("curl -X GET http://localhost:8080/api/tags/rh-qpid-proton-j:master:untested", quiet=True)
-    call("curl -X DELETE http://localhost:8080/api/tags/rh-qpid-proton-j:master:untested")
-    call("curl -X PUT --data-ascii '{{\"abc\": 123}}' http://localhost:8080/api/tags/rh-qpid-proton-j:master:untested")
-    call("curl -X GET http://localhost:8080/api/tags", quiet=True)
+    options = "--fail -o /dev/null -s -w '%{url_effective} -> %{http_code} %{size_download} %{content_type}\\n' -H 'Content-Type: application/json'"
+
+    with temp_file() as path:
+        write_json(path, tag_1)
+        call("curl {} -X PUT --data @{} http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested", options, path)
+
+    call("curl {} http://localhost:8080/api/tags", options)
+    call("curl {} http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested", options)
+    call("curl {} http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested/artifacts", options)
+    call("curl {} http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested/artifacts/client-zip", options)
+
+    call("curl {} -X DELETE http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested", options)
+
+    call("curl {} http://localhost:8080/api/tags", options)
 finally:
     terminate_process(server)
