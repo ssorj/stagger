@@ -20,10 +20,6 @@
 
 from plano import *
 
-enable_logging(level="warn")
-
-server = start_process("python3 server/app.py")
-
 tag_1 = {
     "repository": "rh-qpid-jms",
     "repository_url": "http://git.host.prod.eng.bos.redhat.com/git/rh-qpid-jms.git",
@@ -45,22 +41,38 @@ tag_1 = {
     },
 }
 
+curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/json'"
+
+def put(url, data):
+    with temp_file() as data_file:
+        write_json(data_file, data)
+        print(f"PUT {url} -> ", end="", flush=True)
+        call("curl -X PUT {} --data @{} {}", url, data_file, curl_options)
+
+def get(url):
+    print(f"GET {url} -> ", end="", flush=True)
+    call("curl {} {}", url, curl_options)
+
+def delete(url):
+    print(f"DELETE {url} -> ", end="", flush=True)
+    call("curl -X DELETE {} {}", url, curl_options)
+
+enable_logging(level="warn")
+
+server = start_process("python3 server/app.py")
+
 try:
     sleep(0.5)
 
-    options = "--fail -o /dev/null -s -w '%{url_effective} -> %{http_code} %{size_download} %{content_type}\\n' -H 'Content-Type: application/json'"
+    put("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested", tag_1)
 
-    with temp_file() as path:
-        write_json(path, tag_1)
-        call("curl {} -X PUT --data @{} http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested", options, path)
+    get("http://localhost:8080/api/tags")
+    get("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested")
+    get("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested/artifacts")
+    get("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested/artifacts/client-zip")
 
-    call("curl {} http://localhost:8080/api/tags", options)
-    call("curl {} http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested", options)
-    call("curl {} http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested/artifacts", options)
-    call("curl {} http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested/artifacts/client-zip", options)
+    delete("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested")
 
-    call("curl {} -X DELETE http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested", options)
-
-    call("curl {} http://localhost:8080/api/tags", options)
+    get("http://localhost:8080/api/tags")
 finally:
     terminate_process(server)
