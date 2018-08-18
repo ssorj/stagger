@@ -17,6 +17,7 @@
 # under the License.
 #
 
+import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
 
@@ -49,6 +50,8 @@ async def serve_tag(request):
     if request.method == "PUT":
         try:
             tag = Tag(**await request.json())
+        except _json_decoder.JSONDecodeError as e:
+            return Response(f"Bad request: Failure decoding JSON: {e}", 400, media_type="text/plain")
         except DataError as e:
             return Response(f"Bad request: {e}", 400, media_type="text/plain")
 
@@ -89,14 +92,12 @@ async def serve_artifact(request):
 
 if __name__ == "__main__":
     router = Router([
-        Path("/", StaticFile(path="static/index.html")),
-        Path("/app.css", StaticFile(path="static/app.css")),
-        Path("/app.js", StaticFile(path="static/app.js")),
-        Path("/gesso.js", StaticFile(path="static/gesso.js")),
         Path("/api/tags/?", app=serve_tag_index, methods=["GET"]),
         Path("/api/tags/{tag_id}/?", app=serve_tag, methods=["PUT", "GET", "DELETE"]),
         Path("/api/tags/{tag_id}/artifacts/?", app=serve_artifact_index, methods=["GET"]),
         Path("/api/tags/{tag_id}/artifacts/{artifact_name}/?", app=serve_artifact, methods=["GET"]),
+        Path("/", StaticFile(path="static/index.html")),
+        PathPrefix("", StaticFiles(directory="static")),
     ])
 
     if not _os.path.exists("data"):
