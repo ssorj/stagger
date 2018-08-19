@@ -59,7 +59,8 @@ def delete(url):
 
 enable_logging(level="warn")
 
-server = start_process("python3 python/app.py")
+with working_dir("build"):
+    server = start_process("python3 python/app.py")
 
 try:
     sleep(0.5)

@@ -17,95 +17,26 @@
 # under the License.
 #
 
-import json.decoder as _json_decoder
-import logging as _logging
 import os as _os
 
 from data import *
-from starlette import *
-from starlette.routing import *
-from starlette.staticfiles import *
+from httpserver import *
 
-_log = _logging.getLogger("app")
+class Application:
+    def __init__(self, home):
+        self.home = home
+        self.data = Data(_os.path.join(self.home, "data", "data.json"))
 
-_data = None
-_not_found = Response("Not found", 404, media_type="text/plain")
+    def run(self):
+        if not _os.path.exists("data"):
+            _os.makedirs("data")
 
-@asgi_application
-async def serve_tag_index(request):
-    return JSONResponse(_data.tags)
+        self.data.load()
+        self.data.save_thread.start()
 
-@asgi_application
-async def serve_tag(request):
-    tag_id = request["kwargs"]["tag_id"]
-
-    if request.method == "GET":
-        try:
-            tag = _data.tags[tag_id]
-        except KeyError:
-            return _not_found
-
-        return JSONResponse(tag)
-
-    if request.method == "PUT":
-        try:
-            tag = Tag(**await request.json())
-        except _json_decoder.JSONDecodeError as e:
-            return Response(f"Bad request: Failure decoding JSON: {e}", 400, media_type="text/plain")
-        except DataError as e:
-            return Response(f"Bad request: {e}", 400, media_type="text/plain")
-
-        _data.put_tag(tag)
-
-        return Response("")
-
-    if request.method == "DELETE":
-        try:
-            _data.delete_tag(tag_id)
-        except KeyError:
-            return _not_found
-
-        return Response("")
-
-@asgi_application
-async def serve_artifact_index(request):
-    tag_id = request["kwargs"]["tag_id"]
-
-    try:
-        content = _data.tags[tag_id]["artifacts"]
-    except KeyError:
-        return _not_found
-
-    return JSONResponse(content)
-
-@asgi_application
-async def serve_artifact(request):
-    tag_id = request["kwargs"]["tag_id"]
-    artifact_name = request["kwargs"]["artifact_name"]
-
-    try:
-        content = _data.tags[tag_id]["artifacts"][artifact_name]
-    except KeyError:
-        return _not_found
-
-    return JSONResponse(content)
+        server = HttpServer(self)
+        server.run()
 
 if __name__ == "__main__":
-    router = Router([
-        Path("/api/tags/?", app=serve_tag_index, methods=["GET"]),
-        Path("/api/tags/{tag_id}/?", app=serve_tag, methods=["PUT", "GET", "DELETE"]),
-        Path("/api/tags/{tag_id}/artifacts/?", app=serve_artifact_index, methods=["GET"]),
-        Path("/api/tags/{tag_id}/artifacts/{artifact_name}/?", app=serve_artifact, methods=["GET"]),
-        Path("/", StaticFile(path="static/index.html")),
-        PathPrefix("", StaticFiles(directory="static")),
-    ])
-
-    if not _os.path.exists("data"):
-        _os.makedirs("data")
-
-    _data = Data("data/data.json")
-    _data.load()
-    _data.save_thread.start()
-
-    import uvicorn
-    uvicorn.run(router, "0.0.0.0", 8080, log_level="warning")
+    app = Application(_os.getcwd())
+    app.run()
