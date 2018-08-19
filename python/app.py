@@ -28,8 +28,10 @@ class Application:
         self.data = Data(_os.path.join(self.home, "data", "data.json"))
 
     def run(self):
-        if not _os.path.exists("data"):
-            _os.makedirs("data")
+        data_dir = _os.path.join(self.home, "data")
+
+        if not _os.path.exists(data_dir):
+            _os.makedirs(data_dir)
 
         self.data.load()
         self.data.save_thread.start()
