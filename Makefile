@@ -31,6 +31,7 @@ test: build
 
 .PHONY: clean
 clean:
+	rm -rf python/__pycache__
 	rm -rf build
 
 .PHONY: run
