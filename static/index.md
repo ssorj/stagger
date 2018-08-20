@@ -1,29 +1,63 @@
 # Stagger
 
 A service for tagging software builds and describing the resulting
-build artifacts.
+build artifacts.  A Stagger tag binds a well-known name to a concrete,
+installable version of your software.
+
+## Source repos
+
+A source repo is a named container for tags corresponding to a
+particular source code repository.
+
+A repo is identified by an arbitrary ID.  I recommend using a name
+that matches the referenced repository.
+
+<pre>
+<b>GET /api/repos/&lt;repo-id&gt;</b>
+<b>PUT /api/repos/&lt;repo-id&gt;</b>
+
+{
+    "tags": {
+        "&lt;tag-id&gt;": { /* Tag fields */ },
+        "&lt;tag-id&gt;": { /* Tag fields */ },
+        "&lt;tag-id&gt;": { /* Tag fields */ }
+    }
+}
+</pre>
+
+<pre>
+<b>GET /api/repos</b>
+
+{
+    "&lt;repo-id&gt;": { /* Repo fields */ },
+    "&lt;repo-id&gt;": { /* Repo fields */ },
+    "&lt;repo-id&gt;": { /* Repo fields */ }
+}
+</pre>
+
+<pre>
+<b>DELETE /api/repos/&lt;repo-id&gt;</b>
+</pre>
 
 ## Build tags
 
-A build tag is a stable name representing a component build with a
-particular status, such as "untested", "tested", or "released".
+A build tag is a stable name representing a build with a particular
+status, such as "untested", "tested", or "released".
 
 A tag is identified by an arbitrary ID.  The tag ID is meant for use
-in the context of multiple components and branches, so it is important
+in the context of multiple repos and branches, so it is important
 to qualify it.  I recommend IDs of the form
-<code>&lt;repository&gt;:&lt;branch&gt;:&lt;status&gt;</code>.
+<code>&lt;source-repo-branch&gt;-&lt;status&gt;</code>.
 
 A tag contains a set of named artifacts.
 
 <pre>
-<b>GET /api/tags/&lt;tag-id&gt;</b>
-<b>PUT /api/tags/&lt;tag-id&gt;</b>
+<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
+<b>PUT /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
 
 {
-    "repository": "&lt;source-repo-name&gt;",
-    "repository_url": "&lt;source-repo-url&gt;",
-    "branch": "&lt;branch-name&gt;",
-    "commit": "&lt;commit-id&gt;",
+    "build_id": "&lt;build-id&gt;",
+    "build_url": "&lt;build-url&gt;",
     "artifacts": {
         "&lt;artifact-id&gt;": { /* Artifact fields */ },
         "&lt;artifact-id&gt;": { /* Artifact fields */ },
@@ -33,7 +67,7 @@ A tag contains a set of named artifacts.
 </pre>
 
 <pre>
-<b>GET /api/tags</b>
+<b>GET /api/repos/&lt;repo-id&gt;/tags</b>
 
 {
     "&lt;tag-id&gt;": { /* Tag fields */ },
@@ -43,7 +77,7 @@ A tag contains a set of named artifacts.
 </pre>
 
 <pre>
-<b>DELETE /api/tags/&lt;tag-id&gt;</b>
+<b>DELETE /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
 </pre>
 
 ## Build artifacts
@@ -53,7 +87,7 @@ of the build outputs, such as Maven artifacts or container images.
 Different artifact types have different fields.
 
 <pre>
-<b>GET /api/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
+<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
 
 {
     "type": "&lt;artifact-type&gt;",
@@ -62,7 +96,7 @@ Different artifact types have different fields.
 </pre>
 
 <pre>
-<b>GET /api/tags/&lt;tag-id&gt;/artifacts</b>
+<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts</b>
 
 {
     "&lt;artifact-id&gt;": { /* Artifact fields */ },
@@ -77,8 +111,8 @@ conventions for these below.
 ### Arbitrary files
 
 I recommend IDs of the form
-<code>&lt;file-name&gt;-&lt;file-type&gt;</code>, as in
-<code>amq-broker-zip</code>.
+<code>&lt;file-name&gt;-&lt;file-type&gt;</code> (but without any
+unstable version part), as in <code>amq-broker-zip</code>.
 
 <pre>
 {
@@ -98,7 +132,7 @@ I recommend IDs of the form
     "type": "container-image",
     "registry_url": "&lt;container-registry-url&gt;",
     "repository": "&lt;repository-name&gt;",
-    "image-id": "&lt;image-id&gt;"
+    "image_id": "&lt;image-id&gt;"
 }
 </pre>
 
@@ -112,8 +146,8 @@ I recommend IDs of the form
 {
     "type": "maven",
     "repository_url": "&lt;maven-repo-url&gt;",
-    "group-id": "&lt;maven-group-id&gt;",
-    "artifact-id": "&lt;maven-artifact-id&gt;",
+    "group_id": "&lt;maven-group-id&gt;",
+    "artifact_id": "&lt;maven-artifact-id&gt;",
     "version": "&lt;maven-version&gt;"
 }
 </pre>
@@ -121,8 +155,8 @@ I recommend IDs of the form
 ### RPM packages
 
 I recommend IDs of the form
-<code>&lt;package-name&gt;-rpm</code>, as in
-<code>qpid-proton-cpp-devel-rpm</code>.
+<code>&lt;package-name&gt;-&lt;dist&gt;-rpm</code>, as in
+<code>qpid-proton-cpp-devel-el7-rpm</code>.
 
 <pre>
 {

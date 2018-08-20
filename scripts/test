@@ -21,20 +21,17 @@
 from plano import *
 
 tag_1 = {
-    "repository": "rh-qpid-jms",
-    "repository_url": "http://git.host.prod.eng.bos.redhat.com/git/rh-qpid-jms.git",
-    "branch": "0.34.0-amq",
-    "name": "tested",
-    "commit": "16dc03dc8075e6600342b1dcdcafc5d28b7ffde5",
+    "build_id": "XXX",
+    "build_url": "XXX",
     "artifacts": {
-        "client-maven": {
+        "qpid-jms-client-maven": {
             "type": "maven",
-            "group": "org.apache.qpid",
-            "artifact": "qpid-jms-client",
+            "group_id": "org.apache.qpid",
+            "artifact_id": "qpid-jms-client",
             "version": "0.34.0.redhat-00002",
             "repository_url": "http://download-node-02.eng.bos.redhat.com/devel/candidates/amq/AMQ-CLIENTS-2.1.0/JMS-maven-repo/maven-repository",
         },
-        "client-zip": {
+        "qpid-jms-zip": {
             "type": "file",
             "url": "http://download-node-02.eng.bos.redhat.com/devel/candidates/amq/AMQ-CLIENTS-2.1.0/qpid-jms-0.34.0.redhat-00002-bin.zip",
         },
@@ -65,15 +62,15 @@ with working_dir("build"):
 try:
     sleep(0.5)
 
-    put("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested", tag_1)
+    put("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested", tag_1)
 
-    get("http://localhost:8080/api/tags")
-    get("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested")
-    get("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested/artifacts")
-    get("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested/artifacts/client-zip")
+    get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
+    get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
+    get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts")
+    get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
 
-    delete("http://localhost:8080/api/tags/rh-qpid-jms:0.34.0-amq:tested")
+    delete("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
 
-    get("http://localhost:8080/api/tags")
+    get("http://localhost:8080/api/repos")
 finally:
     terminate_process(server)

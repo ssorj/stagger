@@ -38,14 +38,22 @@ class HttpServer:
         self.port = port
 
         routes = [
-            Path("/api/tags/?", app=_serve_tag_index, methods=["GET"]),
-            Path("/api/tags/{tag_id}/?", app=_serve_tag, methods=["PUT", "GET", "DELETE"]),
-            Path("/api/tags/{tag_id}/artifacts/?", app=_serve_artifact_index, methods=["GET"]),
-            Path("/api/tags/{tag_id}/artifacts/{artifact_name}/?", app=_serve_artifact, methods=["GET"]),
+            Path("/api/repos/?",
+                 app=_serve_repo_index, methods=["GET"]),
+            Path("/api/repos/{repo_id}/?",
+                 app=_serve_repo, methods=["PUT", "GET", "DELETE"]),
+            Path("/api/repos/{repo_id}/tags/?",
+                 app=_serve_tag_index, methods=["GET"]),
+            Path("/api/repos/{repo_id}/tags/{tag_id}/?",
+                 app=_serve_tag, methods=["PUT", "GET", "DELETE"]),
+            Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/?",
+                 app=_serve_artifact_index, methods=["GET"]),
+            Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}/?",
+                 app=_serve_artifact, methods=["GET"]),
             Path("/", StaticFile(path="static/index.html")),
             PathPrefix("", StaticFiles(directory="static")),
         ]
-        
+
         self._router = _Router(self.app, routes)
 
     def run(self):
@@ -55,73 +63,136 @@ class _Router(Router):
     def __init__(self, app, routes):
         super().__init__(routes)
         self.app = app
-    
+
     def __call__(self, scope):
         scope["app"] = self.app
         return super().__call__(scope)
 
-_not_found = Response("Not found", 404, media_type="text/plain")
+class _NotFoundResponse(PlainTextResponse):
+    def __init__(exception):
+        message = f"Not found: {exception}"
+        super().__init__(message, 404)
+        print(message)
+
+class _BadJsonResponse(PlainTextResponse):
+    def __init__(exception):
+        message = f"Bad request: Failure decoding JSON: {exception}"
+        super().__init__(message, 400)
+        print(message)
+
+class _BadDataResponse(PlainTextResponse):
+    def __init__(exception):
+        message = f"Bad request: Illegal data: {exception}"
+        super().__init__(message, 400)
+        print(message)
 
 @asgi_application
-async def _serve_tag_index(request):
+async def _serve_repo_index(request):
     data = request["app"].data
-    return JSONResponse(data.tags)
+    return JSONResponse(data.repos)
 
 @asgi_application
-async def _serve_tag(request):
+async def _serve_repo(request):
     data = request["app"].data
-    tag_id = request["kwargs"]["tag_id"]
+    repo_id = request["kwargs"]["repo_id"]
 
     if request.method == "GET":
         try:
-            tag = data.tags[tag_id]
-        except KeyError:
-            return _not_found
+            tag = data.repos[repo_id]
+        except KeyError as e:
+            return _NotFoundResponse(e)
 
-        return JSONResponse(tag)
+        return JSONResponse(repo)
 
     if request.method == "PUT":
         try:
-            tag = Tag(**await request.json())
+            repo = Repo(**await request.json())
         except _json_decoder.JSONDecodeError as e:
-            return Response(f"Bad request: Failure decoding JSON: {e}", 400,
-                            media_type="text/plain")
+            return _BadJsonResponse(e)
         except DataError as e:
-            return Response(f"Bad request: {e}", 400, media_type="text/plain")
+            return _BadDataResponse(e)
 
-        data.put_tag(tag)
+        data.put_repo(repo_id, repo)
 
         return Response("")
 
     if request.method == "DELETE":
         try:
-            data.delete_tag(tag_id)
-        except KeyError:
-            return _not_found
+            data.delete_repo(repo_id)
+        except KeyError as e:
+            return _NotFoundResponse(e)
+
+        return Response("")
+
+@asgi_application
+async def _serve_tag_index(request):
+    data = request["app"].data
+    repo_id = request["kwargs"]["repo_id"]
+
+    try:
+        repo = data.repos[repo_id]
+    except KeyError as e:
+        return _NotFoundResponse(e)
+
+    return JSONResponse(repo.tags)
+
+@asgi_application
+async def _serve_tag(request):
+    data = request["app"].data
+    repo_id = request["kwargs"]["repo_id"]
+    tag_id = request["kwargs"]["tag_id"]
+
+    if request.method == "PUT":
+        try:
+            tag = Tag(**await request.json())
+        except _json_decoder.JSONDecodeError as e:
+            return _BadJsonResponse(e)
+        except DataError as e:
+            return _BadDataResponse(e)
+
+        data.put_tag(repo_id, tag_id, tag)
+
+        return Response("")
+
+    if request.method == "GET":
+        try:
+            tag = data.repos[repo_id].tags[tag_id]
+        except KeyError as e:
+            return _NotFoundResponse(e)
+
+        return JSONResponse(tag)
+
+    if request.method == "DELETE":
+        try:
+            data.delete_tag(repo_id, tag_id)
+        except KeyError as e:
+            return _NotFoundResponse(e)
 
         return Response("")
 
 @asgi_application
 async def _serve_artifact_index(request):
     data = request["app"].data
+    repo_id = request["kwargs"]["repo_id"]
     tag_id = request["kwargs"]["tag_id"]
 
     try:
-        content = data.tags[tag_id]["artifacts"]
-    except KeyError:
-        return _not_found
+        artifacts = data.repos[repo_id].tags[tag_id].artifacts
+    except KeyError as e:
+        return _NotFoundResponse(e)
 
-    return JSONResponse(content)
+    return JSONResponse(artifacts)
 
 @asgi_application
 async def _serve_artifact(request):
     data = request["app"].data
+    repo_id = request["kwargs"]["repo_id"]
     tag_id = request["kwargs"]["tag_id"]
-    artifact_name = request["kwargs"]["artifact_name"]
+    artifact_id = request["kwargs"]["artifact_id"]
 
     try:
-        content = data.tags[tag_id]["artifacts"][artifact_name]
-    except KeyError:
-        return _not_found
+        artifact = data.repos[repo_id].tags[tag_id].artifacts[artifact_id]
+    except KeyError as e:
+        return _NotFoundResponse(e)
 
-    return JSONResponse(content)
+    return JSONResponse(artifact)

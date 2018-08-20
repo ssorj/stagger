@@ -1,50 +1,41 @@
 #!/bin/bash
 
-curl -X PUT http://localhost:8080/api/tags/rh-qpid-proton-j:master:untested -d @- <<EOF
+curl -X PUT http://localhost:8080/api/repos/rh-pooled-jms/tags/master-untested -d @- <<EOF
 {
-    "repository": "rh-qpid-proton-j",
-    "repository_url": "http://git.host.prod.eng.bos.redhat.com/git/rh-qpid-proton-j.git",
-    "branch": "master",
-    "name": "untested",
-    "commit": "cdd6d5dd515c631de008c7b2792cc8143b280970",
+    "build_id": "197",
+    "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/pooled-jms-maven-master-rhel/detail/central-ci/197/pipeline",
     "artifacts": {
-        "library": {
+        "pooled-jms-maven": {
             "type": "maven",
-            "repository_url": "https://maven.repository.engineering.redhat.com/",
-            "group": "org.apache.qpid",
-            "artifact": "proton-j",
-            "version": "0.27.1.B1"
+            "repository_url": "http://rhm.usersys.redhat.com/zips/packages/pooled-jms/20180814.6dda44a/",
+            "group_id": "org.messaginghub",
+            "artifact_id": "pooled-jms",
+            "version": "1.0.4-SNAPSHOT"
         }
     }
 }
 EOF
 
-curl -X PUT http://localhost:8080/api/tags/rh-pooled-jms:master:untested -d @- <<EOF
+curl -X PUT http://localhost:8080/api/repos/rh-qpid-jms/tags/master-untested -d @- <<EOF
 {
-    "repository": "rh-pooled-jms",
-    "repository_url": "http://git.host.prod.eng.bos.redhat.com/git/rh-qpid-proton-j.git",
-    "branch": "master",
-    "name": "tested",
-    "commit": "cdd6d5dd515c631de008c7b2792cc8143b280970",
+    "build_id": "877",
+    "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/jms-maven-master-rhel/detail/central-ci/877/pipeline",
     "artifacts": {
         "library": {
             "type": "maven",
-            "repository_url": "https://maven.repository.engineering.redhat.com/",
-            "group": "org.messaginghub",
-            "artifact": "pooled-jms",
-            "version": "1.0.4.B2"
+            "repository_url": "http://rhm.usersys.redhat.com/zips/packages/qpid-jms/20180608.ccf38d7/",
+            "group_id": "org.apache.qpid",
+            "artifact_id": "qpid-jms-client",
+            "version": "0.33.0-SNAPSHOT"
         }
     }
 }
 EOF
 
-curl -X PUT http://localhost:8080/api/tags/rh-pooled-jms:master:untested -d @- <<EOF
+curl -X PUT http://localhost:8080/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
 {
-    "repository": "rh-qpid-dispatch",
-    "repository_url": "http://git.host.prod.eng.bos.redhat.com/git/rh-qpid-dispatch.git",
-    "branch": "master",
-    "name": "untested",
-    "commit": "483b9293604063480d5f706edea18cb0a3e4c8b9",
+    "build_id": "14",
+    "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/dispatch-rpm-master-rhel/detail/central-ci/14/pipeline",
     "artifacts": {
         "qpid-dispatch-router-el7-rpm": {
             "type": "rpm",
@@ -57,19 +48,16 @@ curl -X PUT http://localhost:8080/api/tags/rh-pooled-jms:master:untested -d @- <
             "type": "container-image",
             "registry_url": "https://registry.access.redhat.com",
             "repository": "amq-interconnect-1",
-            "id": "8e996ec51141"
+            "image_id": "8e996ec51141"
         }
     }
 }
 EOF
 
-curl -X PUT http://localhost:8080/api/tags/rh-qpid-proton:master:untested -d @- <<EOF
+curl -X PUT http://localhost:8080/api/repos/rh-qpid-proton/tags/master-untested -d @- <<EOF
 {
-    "repository": "rh-qpid-proton",
-    "repository_url": "http://git.host.prod.eng.bos.redhat.com/git/rh-qpid-proton.git",
-    "branch": "master",
-    "name": "untested",
-    "commit": "803a47e",
+    "build_id": "XXX",
+    "build_url": "XXX",
     "artifacts": {
         "python-qpid-proton-el7-rpm": {
             "type": "rpm",

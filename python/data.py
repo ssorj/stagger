@@ -29,10 +29,10 @@ class Data:
     def __init__(self, file_path):
         self.file_path = file_path
 
-        self.tags = dict()
+        self.repos = dict()
 
-        self.lock = _threading.Lock()
-        self.modified = _threading.Event()
+        self._lock = _threading.Lock()
+        self._modified = _threading.Event()
 
         self.save_thread = _SaveThread(self)
 
@@ -43,38 +43,52 @@ class Data:
         with open(self.file_path, "r") as f:
             data = _json.load(f)
 
-            assert "tags" in data, "No tags in data"
+            assert "repos" in data, "No repos field in data"
 
-            for id, value in data["tags"].items():
-                self.tags[id] = Tag(**value)
-
-            #print(f"Loaded data from disk: {data}")
+            for id, value in data["repos"].items():
+                self.repos[id] = Repo(**value)
 
     def save(self):
-        with self.lock:
+        with self._lock:
             temp = f"{self.file_path}.temp"
             data = {
-                "tags": self.tags,
+                "repos": self.repos,
             }
-
-            #print(f"Saving data to disk: {data}")
 
             with open(temp, "w") as f:
                 _json.dump(data, f, indent=4)
 
             _os.rename(temp, self.file_path)
 
-    def put_tag(self, tag):
-        with self.lock:
-            self.tags[tag.id] = tag
+    def put_repo(self, repo_id, repo):
+        with self._lock:
+            self.repos[repo_id] = repo
 
-        self.modified.set()
+        self._modified.set()
 
-    def delete_tag(self, id):
-        with self.lock:
-            del self.tags[id]
+    def delete_repo(self, repo_id):
+        with self._lock:
+            del self.repos[repo_id]
 
-        self.modified.set()
+        self._modified.set()
+
+    def put_tag(self, repo_id, tag_id, tag):
+        with self._lock:
+            repo = self.repos.get(repo_id)
+
+            if repo is None:
+                repo = Repo(tags={})
+                self.repos[repo_id] = repo
+
+            repo.tags[tag_id] = tag
+
+        self._modified.set()
+
+    def delete_tag(self, repo_id, tag_id):
+        with self._lock:
+            del self.repos[repo_id].tags[tag_id]
+
+        self._modified.set()
 
 class DataError(Exception):
     pass
@@ -84,7 +98,7 @@ class _DataObject(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-    _fields = ()
+    _fields = []
 
     def __init__(self, **kwargs):
         for name, value in kwargs.items():
@@ -104,8 +118,20 @@ class _DataObject(dict):
             if name not in self:
                 raise DataError(f"Missing field '{name}'")
 
+class Repo(_DataObject):
+    _fields = ["tags"]
+
+    def _process_field(self, name, value):
+        if name not in self._fields:
+            raise DataError(f"Extra field '{name}'")
+
+        if name == "tags":
+            return name, {k: Tag(**v) for k, v in value.items()}
+
+        return name, value
+
 class Tag(_DataObject):
-    _fields = "repository", "repository_url", "branch", "name", "commit", "artifacts"
+    _fields = ["build_id", "build_url", "artifacts"]
 
     def _process_field(self, name, value):
         if name not in self._fields:
@@ -125,18 +151,14 @@ class Tag(_DataObject):
 
         return name, value
 
-    @property
-    def id(self):
-        return f"{self.repository}:{self.branch}:{self.name}"
-
 class Artifact(_DataObject):
     _fields = "type"
 
 class ContainerImageArtifact(Artifact):
-    _fields = "type", "registry_url", "repository", "id"
+    _fields = "type", "registry_url", "repository", "image_id"
 
 class MavenArtifact(Artifact):
-    _fields = "type", "repository_url", "group", "artifact", "version"
+    _fields = "type", "repository_url", "group_id", "artifact_id", "version"
 
 class FileArtifact(Artifact):
     _fields = "type", "url"
@@ -159,7 +181,7 @@ class _SaveThread(_threading.Thread):
         self.daemon = True
 
     def run(self):
-        while self.data.modified.wait():
+        while self.data._modified.wait():
             try:
                 self.data.save()
             except KeyboardInterrupt:
@@ -167,4 +189,4 @@ class _SaveThread(_threading.Thread):
             except Exception:
                 _traceback.print_exc()
             finally:
-                self.data.modified.clear()
+                self.data._modified.clear()
