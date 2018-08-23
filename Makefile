@@ -44,6 +44,20 @@ clean:
 run: build
 	cd build && python3 python/app.py
 
+.PHONY: build-image
+build-image:
+	sudo docker build -t ssorj/stagger .
+
+.PHONY: run-image
+run-image:
+	sudo docker run -p 8080:8080 ssorj/stagger
+
+.PHONY: push-image
+push-image:
+	sudo docker push ssorj/stagger
+
+# oc tag --source=docker ssorj/stagger:latest stagger:latest
+
 .PHONY: update-%
 update-%:
 	curl "https://raw.githubusercontent.com/ssorj/$*/master/python/$*.py" -o python/$*.py
