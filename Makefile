@@ -19,10 +19,16 @@
 
 .NOTPARALLEL:
 
+DESTDIR := ""
+PREFIX := ${HOME}/.local
+
+export PATH := ${CURDIR}/build/bin:${PATH}
+export PYTHONPATH := ${CURDIR}/python:${PYTHONPATH}
+
 .PHONY: build
 build:
 	@mkdir -p build
-	transom --quiet --site-url "" render --force static build/static
+	python3 -m transom --quiet render --site-url "" --force static build/static
 	ln -snf ../python build/python
 
 .PHONY: test
@@ -37,3 +43,7 @@ clean:
 .PHONY: run
 run: build
 	cd build && python3 python/app.py
+
+.PHONY: update-%
+update-%:
+	curl "https://raw.githubusercontent.com/ssorj/$*/master/python/$*.py" -o python/$*.py
