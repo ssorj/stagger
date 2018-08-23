@@ -50,8 +50,8 @@ class HttpServer:
                  app=_serve_artifact_index, methods=["GET"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}/?",
                  app=_serve_artifact, methods=["GET"]),
-            Path("/", StaticFile(path="static/index.html")),
-            PathPrefix("", StaticFiles(directory="static")),
+            Path("/", StaticFile(path=_os.path.join(self.app.home, "static", "index.html"))),
+            PathPrefix("", StaticFiles(directory=_os.path.join(self.app.home, "static"))),
         ]
 
         self._router = _Router(self.app, routes)

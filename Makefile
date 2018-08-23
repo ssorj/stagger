@@ -21,28 +21,49 @@
 
 DESTDIR := ""
 PREFIX := ${HOME}/.local
+INSTALLED_STAGGER_HOME = ${PREFIX}/share/stagger
 
-export PATH := ${CURDIR}/build/bin:${PATH}
+export STAGGER_HOME = ${CURDIR}/build
+export PATH := ${STAGGER_HOME}/bin:${PATH}
 export PYTHONPATH := ${CURDIR}/python:${PYTHONPATH}
 
-.PHONY: build
-build:
-	@mkdir -p build
-	python3 -m transom --quiet render --site-url "" --force static build/static
-	ln -snf ../python build/python
+BIN_SOURCES := $(shell find bin -type f -name \*.in)
+BIN_TARGETS := ${BIN_SOURCES:%.in=build/%}
 
-.PHONY: test
-test: build
-	scripts/test
+.PHONY: default
+default: build
+
+.PHONY: help
+help:
+	@echo "build          Build the code"
+	@echo "install        Install the code"
+	@echo "clean          Clean up the source tree"
+	@echo "test           Run the tests"
+	@echo "run            Run the server"
 
 .PHONY: clean
 clean:
 	rm -rf python/__pycache__
 	rm -rf build
 
+.PHONY: build
+build: ${BIN_TARGETS} build/prefix.txt
+	python3 -m transom --quiet render --site-url "" --force static build/static
+	ln -snf ../python build/python
+
+.PHONY: install
+install: build
+	scripts/install-files build/bin ${DESTDIR}$$(cat build/prefix.txt)/bin
+	scripts/install-files python ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/python
+	scripts/install-files build/static ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/static
+
+.PHONY: test
+test: build
+	scripts/test
+
 .PHONY: run
 run: build
-	cd build && python3 python/app.py
+	stagger
 
 .PHONY: build-image
 build-image:
@@ -57,6 +78,12 @@ push-image:
 	sudo docker push ssorj/stagger
 
 # oc tag --source=docker ssorj/stagger:latest stagger:latest
+
+build/prefix.txt:
+	echo ${PREFIX} > build/prefix.txt
+
+build/bin/%: bin/%.in
+	scripts/configure-file -a stagger_home=${INSTALLED_STAGGER_HOME} $< $@
 
 .PHONY: update-%
 update-%:

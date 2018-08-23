@@ -1,0 +1,3 @@
+export STAGGER_HOME=$PWD/build
+export PATH=$STAGGER_HOME/bin:$PATH
+export PYTHONPATH=$STAGGER_HOME/python:$PWD/python:$PYTHONPATH
