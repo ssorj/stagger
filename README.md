@@ -1,1 +1,6 @@
-# stagger
+# Stagger
+
+## Dependencies
+
+ - starlette
+ - uvicorn
