@@ -22,7 +22,7 @@ import logging as _logging
 import os as _os
 import uvicorn as _uvicorn
 
-from data import *
+from .data import *
 from starlette import *
 from starlette.routing import *
 from starlette.staticfiles import *

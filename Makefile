@@ -43,7 +43,7 @@ help:
 
 .PHONY: clean
 clean:
-	rm -rf python/__pycache__
+	rm -rf python/__pycache__ python/stagger/__pycache__
 	rm -rf build
 
 .PHONY: build
@@ -54,7 +54,7 @@ build: ${BIN_TARGETS} build/prefix.txt
 .PHONY: install
 install: build
 	scripts/install-files build/bin ${DESTDIR}$$(cat build/prefix.txt)/bin
-	scripts/install-files python ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/python
+	scripts/install-files python/stagger ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/python/stagger
 	scripts/install-files build/static ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/static
 
 .PHONY: test

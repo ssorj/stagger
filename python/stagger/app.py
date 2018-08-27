@@ -19,8 +19,8 @@
 
 import os as _os
 
-from data import *
-from httpserver import *
+from .data import *
+from .httpserver import *
 
 class Application:
     def __init__(self, home):

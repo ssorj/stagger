@@ -25,7 +25,7 @@ default_home = os.path.normpath("@stagger_home@")
 home = os.environ.get("STAGGER_HOME", default_home)
 sys.path.insert(0, os.path.join(home, "python"))
 
-from app import *
+from stagger.app import *
 
 if __name__ == "__main__":
     app = Application(home)
