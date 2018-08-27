@@ -23,16 +23,22 @@ from .data import *
 from .httpserver import *
 
 class Application:
-    def __init__(self, home):
+    def __init__(self, home, data_dir=None):
         self.home = home
-        self.data = Data(_os.path.join(self.home, "data", "data.json"))
+        self.data_dir = data_dir
+
+        if self.data_dir is None:
+            self.data_dir = _os.path.join(self.home, "data")
+
+        self.data = None
 
     def run(self):
-        data_dir = _os.path.join(self.home, "data")
+        assert self.data is None
 
-        if not _os.path.exists(data_dir):
-            _os.makedirs(data_dir)
+        if not _os.path.exists(self.data_dir):
+            _os.makedirs(self.data_dir)
 
+        self.data = Data(_os.path.join(self.data_dir, "data.json"))
         self.data.load()
         self.data.save_thread.start()
 

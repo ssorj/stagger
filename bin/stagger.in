@@ -28,5 +28,7 @@ sys.path.insert(0, os.path.join(home, "python"))
 from stagger.app import *
 
 if __name__ == "__main__":
-    app = Application(home)
+    data_dir = os.environ.get("STAGGER_DATA_DIR")
+
+    app = Application(home, data_dir=data_dir)
     app.run()
