@@ -19,7 +19,7 @@
 
 import os as _os
 
-from .data import *
+from .model import *
 from .httpserver import *
 
 class Application:
@@ -30,17 +30,17 @@ class Application:
         if self.data_dir is None:
             self.data_dir = _os.path.join(self.home, "data")
 
-        self.data = None
+        self.model = None
 
     def run(self):
-        assert self.data is None
+        assert self.model is None
 
         if not _os.path.exists(self.data_dir):
             _os.makedirs(self.data_dir)
 
-        self.data = Data(_os.path.join(self.data_dir, "data.json"))
-        self.data.load()
-        self.data.save_thread.start()
+        self.model = Model(_os.path.join(self.data_dir, "data.json"))
+        self.model.load()
+        self.model.save_thread.start()
 
         server = HttpServer(self)
         server.run()

@@ -24,9 +24,9 @@ import os as _os
 import threading as _threading
 import traceback as _traceback
 
-_log = _logging.getLogger("data")
+_log = _logging.getLogger("model")
 
-class Data:
+class Model:
     def __init__(self, file_path):
         self.file_path = file_path
 
@@ -64,7 +64,6 @@ class Data:
 
         for repo_id, repo in self.repos.items():
             assert isinstance(repo, Repo), repo
-
             repos[repo_id] = repo.data()
 
         return {"repos": repos}
@@ -105,15 +104,13 @@ class Data:
 class DataError(Exception):
     pass
 
-class _DataObject:
+class _ModelObject:
     def data(self, exclude=[]):
         fields = dict()
 
         for name, value in vars(self).items():
-            if name in exclude:
-                continue
-
-            fields[name] = value
+            if name not in exclude:
+                fields[name] = value
 
         return fields
 
@@ -123,7 +120,7 @@ class _DataObject:
     def digest(self):
         return _binascii.crc32(self.json().encode("utf-8"))
 
-class Repo(_DataObject):
+class Repo(_ModelObject):
     def __init__(self, tags={}):
         super().__init__()
 
@@ -141,7 +138,7 @@ class Repo(_DataObject):
 
         return fields
 
-class Tag(_DataObject):
+class Tag(_ModelObject):
     def __init__(self, repo, build_id=None, build_url=None, artifacts={}):
         super().__init__()
 
@@ -155,7 +152,7 @@ class Tag(_DataObject):
             if "type" not in artifact_data:
                 raise DataError(f"Artifact has no type field")
 
-            cls = Artifact._subclasses_by_type[artifact_data["type"]]
+            cls = _Artifact._subclasses_by_type[artifact_data["type"]]
             self.artifacts[artifact_id] = cls(self, **artifact_data)
 
     def data(self):
@@ -167,7 +164,7 @@ class Tag(_DataObject):
 
         return fields
 
-class Artifact(_DataObject):
+class _Artifact(_ModelObject):
     def __init__(self, tag, type=None):
         super().__init__()
 
@@ -177,7 +174,7 @@ class Artifact(_DataObject):
     def data(self):
         return super().data(exclude=["tag"])
 
-class ContainerImageArtifact(Artifact):
+class ContainerImageArtifact(_Artifact):
     def __init__(self, tag, type=None, registry_url=None, repository=None, image_id=None):
         super().__init__(tag, type=type)
 
@@ -185,7 +182,7 @@ class ContainerImageArtifact(Artifact):
         self.repository = repository
         self.image_id = image_id
 
-class MavenArtifact(Artifact):
+class MavenArtifact(_Artifact):
     def __init__(self, tag, type=None, repository_url=None, group_id=None, artifact_id=None, version=None):
         super().__init__(tag, type=type)
 
@@ -194,13 +191,13 @@ class MavenArtifact(Artifact):
         self.artifact_id = artifact_id
         self.version = version
 
-class FileArtifact(Artifact):
+class FileArtifact(_Artifact):
     def __init__(self, tag, type=None, url=None):
         super().__init__(tag, type=type)
 
         self.url = url
 
-class RpmArtifact(Artifact):
+class RpmArtifact(_Artifact):
     def __init__(self, tag, type=None, repository_url=None, name=None, version=None, release=None):
         super().__init__(tag, type=type)
 
@@ -209,7 +206,7 @@ class RpmArtifact(Artifact):
         self.version = version
         self.release = release
 
-Artifact._subclasses_by_type = {
+_Artifact._subclasses_by_type = {
     "container-image": ContainerImageArtifact,
     "maven": MavenArtifact,
     "file": FileArtifact,

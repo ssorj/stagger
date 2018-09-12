@@ -24,7 +24,7 @@ import logging as _logging
 import os as _os
 import uvicorn as _uvicorn
 
-from .data import *
+from .model import *
 from starlette import *
 from starlette.routing import *
 from starlette.staticfiles import *
@@ -86,12 +86,12 @@ class _BadDataResponse(PlainTextResponse):
 
 @asgi_application
 async def _serve_data(request):
-    data = request["app"].data
-    return JSONResponse(data.data())
+    model = request["app"].model
+    return JSONResponse(model.data())
 
 @asgi_application
 async def _serve_repo(request):
-    data = request["app"].data
+    model = request["app"].model
     repo_id = request["kwargs"]["repo_id"]
 
     if request.method == "PUT":
@@ -101,7 +101,7 @@ async def _serve_repo(request):
             return _BadJsonResponse(e)
 
         try:
-            data.put_repo(repo_id, repo_data)
+            model.put_repo(repo_id, repo_data)
         except DataError as e:
             return _BadDataResponse(e)
 
@@ -109,14 +109,14 @@ async def _serve_repo(request):
 
     if request.method == "DELETE":
         try:
-            data.delete_repo(repo_id)
+            model.delete_repo(repo_id)
         except KeyError as e:
             return _NotFoundResponse(e)
 
         return Response("")
 
     try:
-        tag = data.repos[repo_id]
+        tag = model.repos[repo_id]
     except KeyError as e:
         return _NotFoundResponse(e)
 
@@ -125,7 +125,7 @@ async def _serve_repo(request):
 
 @asgi_application
 async def _serve_tag(request):
-    data = request["app"].data
+    model = request["app"].model
     repo_id = request["kwargs"]["repo_id"]
     tag_id = request["kwargs"]["tag_id"]
 
@@ -136,7 +136,7 @@ async def _serve_tag(request):
             return _BadJsonResponse(e)
 
         try:
-            data.put_tag(repo_id, tag_id, tag_data)
+            model.put_tag(repo_id, tag_id, tag_data)
         except DataError as e:
             return _BadDataResponse(e)
 
@@ -144,14 +144,14 @@ async def _serve_tag(request):
 
     if request.method == "DELETE":
         try:
-            data.delete_tag(repo_id, tag_id)
+            model.delete_tag(repo_id, tag_id)
         except KeyError as e:
             return _NotFoundResponse(e)
 
         return Response("")
 
     try:
-        tag = data.repos[repo_id].tags[tag_id]
+        tag = model.repos[repo_id].tags[tag_id]
     except KeyError as e:
         return _NotFoundResponse(e)
 
@@ -167,13 +167,13 @@ async def _serve_tag(request):
 
 @asgi_application
 async def _serve_artifact(request):
-    data = request["app"].data
+    model = request["app"].model
     repo_id = request["kwargs"]["repo_id"]
     tag_id = request["kwargs"]["tag_id"]
     artifact_id = request["kwargs"]["artifact_id"]
 
     try:
-        artifact = data.repos[repo_id].tags[tag_id].artifacts[artifact_id]
+        artifact = model.repos[repo_id].tags[tag_id].artifacts[artifact_id]
     except KeyError as e:
         return _NotFoundResponse(e)
 
