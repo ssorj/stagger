@@ -76,6 +76,7 @@ try:
     head("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
 
     delete("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
+    delete("http://localhost:8080/api/repos/rh-qpid-jms")
 
     get("http://localhost:8080/api/data")
 finally:

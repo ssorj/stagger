@@ -156,7 +156,7 @@ async def _serve_tag(request):
         return _NotFoundResponse(e)
 
     headers = {
-        "ETag": f"\"{tag.digest()}\"",
+        "ETag": f"\"{tag.digest}\"",
     }
 
     if request.method == "GET":

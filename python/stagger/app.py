@@ -38,9 +38,11 @@ class Application:
         if not _os.path.exists(self.data_dir):
             _os.makedirs(self.data_dir)
 
-        self.model = Model(_os.path.join(self.data_dir, "data.json"))
+        data_file = _os.path.join(self.data_dir, "data.json")
+            
+        self.model = Model(self, data_file)
         self.model.load()
-        self.model.save_thread.start()
+        self.model.start()
 
         server = HttpServer(self)
         server.run()
