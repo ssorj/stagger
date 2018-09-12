@@ -50,6 +50,11 @@ def get(url):
     print(f"GET {url} -> ", end="", flush=True)
     call("curl {} {}", url, curl_options)
 
+def head(url):
+    print(f"HEAD {url} -> ", end="", flush=True)
+    call("curl --head --include {} {}", url, curl_options)
+
+
 def delete(url):
     print(f"DELETE {url} -> ", end="", flush=True)
     call("curl -X DELETE {} {}", url, curl_options)
@@ -66,11 +71,12 @@ try:
 
     get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
     get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
-    get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts")
     get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
+
+    head("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
 
     delete("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
 
-    get("http://localhost:8080/api/repos")
+    get("http://localhost:8080/api/data")
 finally:
     terminate_process(server)

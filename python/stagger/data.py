@@ -17,6 +17,7 @@
 # under the License.
 #
 
+import binascii as _binascii
 import json as _json
 import logging as _logging
 import os as _os
@@ -45,24 +46,35 @@ class Data:
 
             assert "repos" in data, "No repos field in data"
 
-            for id, value in data["repos"].items():
-                self.repos[id] = Repo(**value)
+            for repo_id, repo in data["repos"].items():
+                self.repos[repo_id] = Repo(**repo)
 
     def save(self):
         with self._lock:
             temp = f"{self.file_path}.temp"
-            data = {
-                "repos": self.repos,
-            }
+            data = self.data()
 
             with open(temp, "w") as f:
                 _json.dump(data, f, indent=4)
 
             _os.rename(temp, self.file_path)
 
-    def put_repo(self, repo_id, repo):
+    def data(self):
+        repos = dict()
+
+        for repo_id, repo in self.repos.items():
+            assert isinstance(repo, Repo), repo
+
+            repos[repo_id] = repo.data()
+
+        return {"repos": repos}
+
+    def json(self):
+        return _json.dumps(self.data(), sort_keys=True, indent=4)
+
+    def put_repo(self, repo_id, repo_data):
         with self._lock:
-            self.repos[repo_id] = repo
+            self.repos[repo_id] = Repo(**repo_data)
 
         self._modified.set()
 
@@ -72,7 +84,7 @@ class Data:
 
         self._modified.set()
 
-    def put_tag(self, repo_id, tag_id, tag):
+    def put_tag(self, repo_id, tag_id, tag_data):
         with self._lock:
             repo = self.repos.get(repo_id)
 
@@ -80,7 +92,7 @@ class Data:
                 repo = Repo(tags={})
                 self.repos[repo_id] = repo
 
-            repo.tags[tag_id] = tag
+            repo.tags[tag_id] = Tag(repo, **tag_data)
 
         self._modified.set()
 
@@ -93,78 +105,109 @@ class Data:
 class DataError(Exception):
     pass
 
-class _DataObject(dict):
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
+class _DataObject:
+    def data(self, exclude=[]):
+        fields = dict()
 
-    _fields = []
+        for name, value in vars(self).items():
+            if name in exclude:
+                continue
 
-    def __init__(self, **kwargs):
-        for name, value in kwargs.items():
-            name, value = self._process_field(name, value)
-            setattr(self, name, value)
+            fields[name] = value
 
-        self._check_fields()
+        return fields
 
-    def _process_field(self, name, value):
-        if name not in self._fields:
-            raise DataError(f"Extra field '{name}'")
+    def json(self):
+        return _json.dumps(self.data(), sort_keys=True)
 
-        return name, value
-
-    def _check_fields(self):
-        for name in self._fields:
-            if name not in self:
-                raise DataError(f"Missing field '{name}'")
+    def digest(self):
+        return _binascii.crc32(self.json().encode("utf-8"))
 
 class Repo(_DataObject):
-    _fields = ["tags"]
+    def __init__(self, tags={}):
+        super().__init__()
 
-    def _process_field(self, name, value):
-        if name not in self._fields:
-            raise DataError(f"Extra field '{name}'")
+        self.tags = dict()
 
-        if name == "tags":
-            return name, {k: Tag(**v) for k, v in value.items()}
+        for tag_id, tag_data in tags.items():
+            self.tags[tag_id] = Tag(self, **tag_data)
 
-        return name, value
+    def data(self):
+        fields = super().data(exclude=["tags"])
+        fields["tags"] = tags = dict()
+
+        for tag_id, tag in self.tags.items():
+            tags[tag_id] = tag.data()
+
+        return fields
 
 class Tag(_DataObject):
-    _fields = ["build_id", "build_url", "artifacts"]
+    def __init__(self, repo, build_id=None, build_url=None, artifacts={}):
+        super().__init__()
 
-    def _process_field(self, name, value):
-        if name not in self._fields:
-            raise DataError(f"Extra field '{name}'")
+        self.repo = repo
+        self.build_id = build_id
+        self.build_url = build_url
 
-        if name == "artifacts":
-            artifacts = dict()
+        self.artifacts = dict()
 
-            for iname, ivalue in value.items():
-                if "type" not in ivalue:
-                    raise DataError(f"Artifact has no type field")
+        for artifact_id, artifact_data in artifacts.items():
+            if "type" not in artifact_data:
+                raise DataError(f"Artifact has no type field")
 
-                cls = Artifact._subclasses_by_type[ivalue["type"]]
-                artifacts[iname] = cls(**ivalue)
+            cls = Artifact._subclasses_by_type[artifact_data["type"]]
+            self.artifacts[artifact_id] = cls(self, **artifact_data)
 
-            return name, artifacts
+    def data(self):
+        fields = super().data(exclude=["repo", "artifacts"])
+        fields["artifacts"] = artifacts = dict()
 
-        return name, value
+        for artifact_id, artifact in self.artifacts.items():
+            artifacts[artifact_id] = artifact.data()
+
+        return fields
 
 class Artifact(_DataObject):
-    _fields = "type"
+    def __init__(self, tag, type=None):
+        super().__init__()
+
+        self.tag = tag
+        self.type = type
+
+    def data(self):
+        return super().data(exclude=["tag"])
 
 class ContainerImageArtifact(Artifact):
-    _fields = "type", "registry_url", "repository", "image_id"
+    def __init__(self, tag, type=None, registry_url=None, repository=None, image_id=None):
+        super().__init__(tag, type=type)
+
+        self.registry_url = registry_url
+        self.repository = repository
+        self.image_id = image_id
 
 class MavenArtifact(Artifact):
-    _fields = "type", "repository_url", "group_id", "artifact_id", "version"
+    def __init__(self, tag, type=None, repository_url=None, group_id=None, artifact_id=None, version=None):
+        super().__init__(tag, type=type)
+
+        self.repository_url = repository_url
+        self.group_id = group_id
+        self.artifact_id = artifact_id
+        self.version = version
 
 class FileArtifact(Artifact):
-    _fields = "type", "url"
+    def __init__(self, tag, type=None, url=None):
+        super().__init__(tag, type=type)
+
+        self.url = url
 
 class RpmArtifact(Artifact):
-    _fields = "type", "repository_url", "name", "version", "release"
+    def __init__(self, tag, type=None, repository_url=None, name=None, version=None, release=None):
+        super().__init__(tag, type=type)
+
+        self.repository_url = repository_url
+        self.name = name
+        self.version = version
+        self.release = release
 
 Artifact._subclasses_by_type = {
     "container-image": ContainerImageArtifact,
@@ -184,9 +227,14 @@ class _SaveThread(_threading.Thread):
         while self.data._modified.wait():
             try:
                 self.data.save()
-            except KeyboardInterrupt:
+            except keyboardinterrupt:
                 raise
-            except Exception:
+            except exception:
                 _traceback.print_exc()
             finally:
                 self.data._modified.clear()
+
+if __name__ == "__main__":
+    data = Data("misc/data.json")
+    data.load()
+    print(data.json())

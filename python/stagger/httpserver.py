@@ -17,6 +17,8 @@
 # under the License.
 #
 
+import binascii as _binascii
+import json as _json
 import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
@@ -38,16 +40,12 @@ class HttpServer:
         self.port = port
 
         routes = [
-            Path("/api/repos/?",
-                 app=_serve_repo_index, methods=["GET"]),
+            Path("/api/data/?",
+                 app=_serve_data, methods=["GET"]),
             Path("/api/repos/{repo_id}/?",
-                 app=_serve_repo, methods=["PUT", "GET", "DELETE"]),
-            Path("/api/repos/{repo_id}/tags/?",
-                 app=_serve_tag_index, methods=["GET"]),
+                 app=_serve_repo, methods=["PUT", "DELETE", "GET"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/?",
-                 app=_serve_tag, methods=["PUT", "GET", "DELETE"]),
-            Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/?",
-                 app=_serve_artifact_index, methods=["GET"]),
+                 app=_serve_tag, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}/?",
                  app=_serve_artifact, methods=["GET"]),
             Path("/", StaticFile(path=_os.path.join(self.app.home, "static", "index.html"))),
@@ -87,32 +85,25 @@ class _BadDataResponse(PlainTextResponse):
         print(message)
 
 @asgi_application
-async def _serve_repo_index(request):
+async def _serve_data(request):
     data = request["app"].data
-    return JSONResponse(data.repos)
+    return JSONResponse(data.data())
 
 @asgi_application
 async def _serve_repo(request):
     data = request["app"].data
     repo_id = request["kwargs"]["repo_id"]
 
-    if request.method == "GET":
-        try:
-            tag = data.repos[repo_id]
-        except KeyError as e:
-            return _NotFoundResponse(e)
-
-        return JSONResponse(repo)
-
     if request.method == "PUT":
         try:
-            repo = Repo(**await request.json())
+            repo_data = await request.json()
         except _json_decoder.JSONDecodeError as e:
             return _BadJsonResponse(e)
+
+        try:
+            data.put_repo(repo_id, repo_data)
         except DataError as e:
             return _BadDataResponse(e)
-
-        data.put_repo(repo_id, repo)
 
         return Response("")
 
@@ -124,17 +115,13 @@ async def _serve_repo(request):
 
         return Response("")
 
-@asgi_application
-async def _serve_tag_index(request):
-    data = request["app"].data
-    repo_id = request["kwargs"]["repo_id"]
-
     try:
-        repo = data.repos[repo_id]
+        tag = data.repos[repo_id]
     except KeyError as e:
         return _NotFoundResponse(e)
 
-    return JSONResponse(repo.tags)
+    if request.method == "GET":
+        return JSONResponse(repo)
 
 @asgi_application
 async def _serve_tag(request):
@@ -144,23 +131,16 @@ async def _serve_tag(request):
 
     if request.method == "PUT":
         try:
-            tag = Tag(**await request.json())
+            tag_data = await request.json()
         except _json_decoder.JSONDecodeError as e:
             return _BadJsonResponse(e)
+
+        try:
+            data.put_tag(repo_id, tag_id, tag_data)
         except DataError as e:
             return _BadDataResponse(e)
 
-        data.put_tag(repo_id, tag_id, tag)
-
         return Response("")
-
-    if request.method == "GET":
-        try:
-            tag = data.repos[repo_id].tags[tag_id]
-        except KeyError as e:
-            return _NotFoundResponse(e)
-
-        return JSONResponse(tag)
 
     if request.method == "DELETE":
         try:
@@ -170,18 +150,20 @@ async def _serve_tag(request):
 
         return Response("")
 
-@asgi_application
-async def _serve_artifact_index(request):
-    data = request["app"].data
-    repo_id = request["kwargs"]["repo_id"]
-    tag_id = request["kwargs"]["tag_id"]
-
     try:
-        artifacts = data.repos[repo_id].tags[tag_id].artifacts
+        tag = data.repos[repo_id].tags[tag_id]
     except KeyError as e:
         return _NotFoundResponse(e)
 
-    return JSONResponse(artifacts)
+    headers = {
+        "ETag": f"\"{tag.digest()}\"",
+    }
+
+    if request.method == "GET":
+        return JSONResponse(tag.data(), headers=headers)
+
+    if request.method == "HEAD":
+        return Response("", headers=headers)
 
 @asgi_application
 async def _serve_artifact(request):
@@ -195,4 +177,4 @@ async def _serve_artifact(request):
     except KeyError as e:
         return _NotFoundResponse(e)
 
-    return JSONResponse(artifact)
+    return JSONResponse(artifact.data())
