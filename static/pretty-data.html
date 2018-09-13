@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Pretty data</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="/main.css" type="text/css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"/>
+    <link rel="icon" href="/images/icon.png" type="image/png" sizes="32x32"/>
+    <script src="/gesso.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>
+      // <![CDATA[
+
+      "use strict";
+
+      const gesso = new Gesso();
+
+      let qs = window.location.search;
+      let url = decodeURIComponent(qs.substring(5));
+
+      window.addEventListener("load", function (event) {
+          let link = $("#link");
+
+          link.setAttribute("href", url);
+          link.textContent = url;
+
+          function loadHandler(event) {
+              let text = event.target.responseText;
+              let contentType = event.target.getResponseHeader("Content-Type");
+
+              if (contentType.indexOf("application/json") === 0) {
+                  let json = JSON.parse(text);
+
+                  text = JSON.stringify(json, null, 4);
+                  text = hljs.highlight("json", text).value;
+                  text = text.replace(/"(https?:\/\/.*?)"/g, "\"<a href=\"$1\">$1</a>\"");
+              }
+
+              try {
+                  $("#content").innerHTML = text;
+              } catch (e) {
+                  $("#content").textContent = "[Error! The data isn't what I expected]";
+              }
+          }
+
+          function errorHandler(event) {
+              $("#content").textContent = "[Error! My request for data failed]";
+          }
+
+          let request = gesso.openRequest("GET", url, loadHandler);
+
+          request.addEventListener("error", errorHandler);
+          request.send();
+      });
+
+      // ]]>
+    </script>
+  </head>
+  <body>
+    <p><a id="link"></a></p>
+
+    <pre id="content" class="json">[Loading...]</pre>
+  </body>
+</html>

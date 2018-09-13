@@ -51,7 +51,7 @@ body {
 
 code,
 pre {
-    font-family: "Ubuntu Mono", monospace;
+    font: 11pt "Ubuntu Mono", monospace;
 }
 
 h1,
@@ -68,29 +68,9 @@ h6 a {
     color: inherit;
 }
 
-h1.selected,
-h2.selected,
-h3.selected,
-h4.selected,
-h5.selected,
-h6.selected {
-    color: rgba(127, 0, 0, 0.8);
-}
-
 a {
     text-decoration: none;
     color: rgba(15, 63, 127, 0.8);
-}
-
-a.heading-link {
-    opacity: 0;
-    font-weight: 300;
-    padding-left: 0.3em;
-    padding-right: 0.3em;
-}
-
-a.heading-link:hover {
-    opacity: 1;
 }
 
 ol,
@@ -181,141 +161,6 @@ section {
     margin: 1.5em 0;
 }
 
-.two-column {
-    -webkit-column-count: 2;
-    -moz-column-count: 2;
-    column-count: 2;
-}
-
-.three-column {
-    -webkit-column-count: 3;
-    -moz-column-count: 3;
-    column-count: 3;
-}
-
-.four-column {
-    -webkit-column-count: 4;
-    -moz-column-count: 4;
-    column-count: 4;
-}
-
-.ruled {
-    border-top: 1px solid #ddd;
-    padding-top: 2em;
-}
-
-.flex {
-    display: flex;
-    justify-content: space-between;
-}
-
-.flex > section,
-.flex > div {
-    flex: 1 0 0;
-}
-
-#-head, #-body, #-foot {
-    margin-bottom: 0;
-}
-
-#-head {
-    padding: 1em 2em;
-    border-bottom: 1px solid #ddd;
-}
-
-#-body {
-    padding: 2em;
-}
-
-#-foot {
-    border-top: 1px solid #ddd;
-    padding: 1em 2em;
-}
-
-#-head-content, #-body-content, #-foot-content {
-    max-width: 960px;
-    margin: 0 auto;
-}
-
-#-head-content {
-    font-size: 0.9em;
-}
-
-#-foot-content {
-    font-size: 0.8em;
-}
-
-#-path-navigation {
-    margin: 0;
-    padding: 0;
-    display: inline;
-}
-
-#-path-navigation > li {
-    display: inline;
-}
-
-#-path-navigation > li:after {
-    content: " \00a0\003e\00a0\00a0 ";
-}
-
-#-path-navigation > li:last-child:after {
-    content: none;
-}
-
-#-global-navigation {
-    float: right;
-}
-
-@media screen and (max-width: 720px) {
-    .two-column,
-    .three-column,
-    .four-column {
-        -webkit-column-count: 2;
-        -moz-column-count: 2;
-        column-count: 2;
-    }
-
-    .flex {
-        display: block;
-    }
-
-    .flex > section {
-        margin: 1.5em 0;
-    }
-
-    .flex > section:first-child {
-        margin-top: 0;
-    }
-
-    .flex > section:last-child {
-        margin-bottom: 0;
-    }
-}
-
-@media screen and (max-width: 480px) {
-    .two-column, .three-column, .four-column {
-        -webkit-column-count: 1;
-        -moz-column-count: 1;
-        column-count: 1;
-    }
-}
-
-@media print {
-    body {
-        font-size: 10pt;
-    }
-
-    pre {
-        font-size: 0.9em;
-        overflow: hidden;
-    }
-    
-    #-head, #-foot {
-        display: none;
-    }
-
-    #-body {
-        padding: 0;
-    }
+body {
+    margin: 2em;
 }
