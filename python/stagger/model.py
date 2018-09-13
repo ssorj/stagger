@@ -32,6 +32,7 @@ class Model:
         self.data_file = data_file
 
         self.repos = dict()
+        self.revision = 0
 
         self._lock = _threading.Lock()
         self._modified = _threading.Event()
@@ -45,9 +46,12 @@ class Model:
             data = _json.load(f)
 
             assert "repos" in data, "No repos field in data"
+            assert "revision" in data, "No revision field in data"
 
             for repo_id, repo in data["repos"].items():
                 self.repos[repo_id] = Repo(self, **repo)
+
+            self.revision = data["revision"]
 
     def start(self):
         self._save_thread.start()
@@ -69,7 +73,10 @@ class Model:
             assert isinstance(repo, Repo), repo
             repos[repo_id] = repo.data()
 
-        return {"repos": repos}
+        return {
+            "repos": repos,
+            "revision": self.revision,
+        }
 
     def json(self):
         return _json.dumps(self.data(), sort_keys=True)
@@ -77,12 +84,14 @@ class Model:
     def put_repo(self, repo_id, repo_data):
         with self._lock:
             self.repos[repo_id] = Repo(self, **repo_data)
+            self.revision += 1
 
         self._modified.set()
 
     def delete_repo(self, repo_id):
         with self._lock:
             del self.repos[repo_id]
+            self.revision += 1
 
         self._modified.set()
 
@@ -97,13 +106,18 @@ class Model:
             repo.tags[tag_id] = Tag(self, repo, **tag_data)
             repo._compute_digest()
 
+            self.revision += 1
+
         self._modified.set()
 
     def delete_tag(self, repo_id, tag_id):
         with self._lock:
             repo = self.repos[repo_id]
+
             del repo.tags[tag_id]
             repo._compute_digest()
+
+            self.revision += 1
 
         self._modified.set()
 

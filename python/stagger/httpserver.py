@@ -47,7 +47,7 @@ class HttpServer:
             Path("/api/repos/{repo_id}/tags/{tag_id}/?",
                  app=_serve_tag, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}/?",
-                 app=_serve_artifact, methods=["GET"]),
+                 app=_serve_artifact, methods=["GET"]), # XXX put, delete, head
             Path("/", StaticFile(path=_os.path.join(self.app.home, "static", "index.html"))),
             PathPrefix("", StaticFiles(directory=_os.path.join(self.app.home, "static"))),
         ]
