@@ -129,7 +129,7 @@ I recommend IDs of the form
 
 <pre>
 {
-    "type": "container-image",
+    "type": "container",
     "registry_url": "&lt;container-registry-url&gt;",
     "repository": "&lt;repository-name&gt;",
     "image_id": "&lt;image-id&gt;"

@@ -284,7 +284,7 @@ class _RpmArtifact(_Artifact):
         self._compute_digest()
 
 _Artifact._subclasses_by_type = {
-    "container-image": _ContainerArtifact,
+    "container": _ContainerArtifact,
     "maven": _MavenArtifact,
     "file": _FileArtifact,
     "rpm": _RpmArtifact,

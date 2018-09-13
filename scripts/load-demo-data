@@ -44,8 +44,8 @@ curl -X PUT http://localhost:8080/api/repos/rh-qpid-dispatch/tags/master-unteste
             "version": "1.4.0",
             "release": "20180816.483b929.el7"
         },
-        "container-image": {
-            "type": "container-image",
+        "amq-interconnect-container": {
+            "type": "container",
             "registry_url": "https://registry.access.redhat.com",
             "repository": "amq-interconnect-1",
             "image_id": "8e996ec51141"

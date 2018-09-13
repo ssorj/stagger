@@ -72,6 +72,12 @@ class _NotFoundResponse(PlainTextResponse):
         super().__init__(message, 404)
         print(message)
 
+class _NotModifiedResponse(PlainTextResponse):
+    def __init__(exception):
+        message = "Not modified"
+        super().__init__(message, 304)
+        print(message)
+
 class _BadJsonResponse(PlainTextResponse):
     def __init__(exception):
         message = f"Bad request: Failure decoding JSON: {exception}"
@@ -87,6 +93,12 @@ class _BadDataResponse(PlainTextResponse):
 @asgi_application
 async def _serve_data(request):
     model = request["app"].model
+
+    server_etag = str(model.revision)
+    client_etag = request.headers.get("If-None-Match")
+
+    if client_etag is not None and client_etag == server_etag:
+        return _NotModifiedResponse()
 
     if request.method == "GET":
         response = JSONResponse(model.data())
@@ -128,6 +140,12 @@ async def _serve_repo(request):
         repo = model.repos[repo_id]
     except KeyError as e:
         return _NotFoundResponse(e)
+
+    server_etag = str(repo.digest)
+    client_etag = request.headers.get("If-None-Match")
+
+    if client_etag is not None and client_etag == server_etag:
+        return _NotModifiedResponse()
 
     if request.method == "GET":
         response = JSONResponse(repo.data())
@@ -171,6 +189,12 @@ async def _serve_tag(request):
     except KeyError as e:
         return _NotFoundResponse(e)
 
+    server_etag = str(tag.digest)
+    client_etag = request.headers.get("If-None-Match")
+
+    if client_etag is not None and client_etag == server_etag:
+        return _NotModifiedResponse()
+
     if request.method == "GET":
         response = JSONResponse(tag.data())
         response.headers["ETag"] = f"\"{tag.digest}\""
@@ -213,6 +237,12 @@ async def _serve_artifact(request):
         artifact = model.repos[repo_id].tags[tag_id].artifacts[artifact_id]
     except KeyError as e:
         return _NotFoundResponse(e)
+
+    server_etag = str(artifact.digest)
+    client_etag = request.headers.get("If-None-Match")
+
+    if client_etag is not None and client_etag == server_etag:
+        return _NotModifiedResponse()
 
     if request.method == "GET":
         response = JSONResponse(artifact.data())

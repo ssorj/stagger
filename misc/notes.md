@@ -40,7 +40,3 @@
      - Installs the artifacts in all desired environments
      - Tests the installed artifacts
      - Tags the artifacts to rh-<component>:<branch>-tested
-
-## Todo
-
- - Change type container-image to just container
