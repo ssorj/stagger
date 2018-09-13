@@ -58,7 +58,7 @@ class Model:
             data = self.data()
 
             with open(temp, "w") as f:
-                _json.dump(data, f, indent=4)
+                _json.dump(data, f, sort_keys=True)
 
             _os.rename(temp, self.data_file)
 
@@ -72,7 +72,7 @@ class Model:
         return {"repos": repos}
 
     def json(self):
-        return _json.dumps(self.data(), sort_keys=True, indent=4)
+        return _json.dumps(self.data(), sort_keys=True)
 
     def put_repo(self, repo_id, repo_data):
         with self._lock:

@@ -65,19 +65,22 @@ with working_dir("build"):
     server = start_process("stagger")
 
 try:
-    sleep(0.5)
+    sleep(0.2)
 
     put("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested", tag_1)
 
-    get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
+    get("http://localhost:8080/api/repos/rh-qpid-jms")
     get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
     get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
 
+    head("http://localhost:8080/api/repos/rh-qpid-jms")
     head("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
 
     delete("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
     delete("http://localhost:8080/api/repos/rh-qpid-jms")
 
+    call("scripts/load-demo-data")
     get("http://localhost:8080/api/data")
+    # head("http://localhost:8080/api/data")
 finally:
     terminate_process(server)

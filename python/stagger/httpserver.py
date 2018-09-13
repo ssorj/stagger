@@ -43,7 +43,7 @@ class HttpServer:
             Path("/api/data/?",
                  app=_serve_data, methods=["GET"]),
             Path("/api/repos/{repo_id}/?",
-                 app=_serve_repo, methods=["PUT", "DELETE", "GET"]),
+                 app=_serve_repo, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/?",
                  app=_serve_tag, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}/?",
@@ -116,12 +116,19 @@ async def _serve_repo(request):
         return Response("")
 
     try:
-        tag = model.repos[repo_id]
+        repo = model.repos[repo_id]
     except KeyError as e:
         return _NotFoundResponse(e)
 
+    headers = {
+        "ETag": f"\"{repo.digest}\"",
+    }
+
     if request.method == "GET":
-        return JSONResponse(repo)
+        return JSONResponse(repo.data())
+
+    if request.method == "HEAD":
+        return Response("", headers=headers)
 
 @asgi_application
 async def _serve_tag(request):
