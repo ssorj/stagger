@@ -41,13 +41,13 @@ class HttpServer:
 
         routes = [
             Path("/api/data/?",
-                 app=_serve_data, methods=["GET"]),
+                 app=_serve_data, methods=["GET", "HEAD"]),
             Path("/api/repos/{repo_id}/?",
                  app=_serve_repo, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/?",
                  app=_serve_tag, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}/?",
-                 app=_serve_artifact, methods=["GET"]), # XXX put, delete, head
+                 app=_serve_artifact, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/", StaticFile(path=_os.path.join(self.app.home, "static", "index.html"))),
             PathPrefix("", StaticFiles(directory=_os.path.join(self.app.home, "static"))),
         ]
@@ -87,7 +87,16 @@ class _BadDataResponse(PlainTextResponse):
 @asgi_application
 async def _serve_data(request):
     model = request["app"].model
-    return JSONResponse(model.data())
+
+    headers = {
+        "ETag": f"\"{model.revision}\"",
+    }
+
+    if request.method == "GET":
+        return JSONResponse(model.data(), headers=headers)
+
+    if request.method == "HEAD":
+        return Response("", headers=headers)
 
 @asgi_application
 async def _serve_repo(request):
@@ -179,9 +188,38 @@ async def _serve_artifact(request):
     tag_id = request["kwargs"]["tag_id"]
     artifact_id = request["kwargs"]["artifact_id"]
 
+    if request.method == "PUT":
+        try:
+            artifact_data = await request.json()
+        except _json_decoder.JSONDecodeError as e:
+            return _BadJsonResponse(e)
+
+        try:
+            model.put_artifact(repo_id, tag_id, artifact_id, artifact_data)
+        except DataError as e:
+            return _BadDataResponse(e)
+
+        return Response("")
+
+    if request.method == "DELETE":
+        try:
+            model.delete_artifact(repo_id, tag_id, artifact_id)
+        except KeyError as e:
+            return _NotFoundResponse(e)
+
+        return Response("")
+
     try:
         artifact = model.repos[repo_id].tags[tag_id].artifacts[artifact_id]
     except KeyError as e:
         return _NotFoundResponse(e)
 
-    return JSONResponse(artifact.data())
+    headers = {
+        "ETag": f"\"{artifact.digest}\"",
+    }
+
+    if request.method == "GET":
+        return JSONResponse(artifact.data(), headers=headers)
+
+    if request.method == "HEAD":
+        return Response("", headers=headers)

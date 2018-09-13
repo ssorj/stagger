@@ -49,7 +49,7 @@ class Model:
             assert "revision" in data, "No revision field in data"
 
             for repo_id, repo in data["repos"].items():
-                self.repos[repo_id] = Repo(self, **repo)
+                self.repos[repo_id] = _Repo(self, **repo)
 
             self.revision = data["revision"]
 
@@ -70,7 +70,7 @@ class Model:
         repos = dict()
 
         for repo_id, repo in self.repos.items():
-            assert isinstance(repo, Repo), repo
+            assert isinstance(repo, _Repo), repo
             repos[repo_id] = repo.data()
 
         return {
@@ -83,7 +83,7 @@ class Model:
 
     def put_repo(self, repo_id, repo_data):
         with self._lock:
-            self.repos[repo_id] = Repo(self, **repo_data)
+            self.repos[repo_id] = _Repo(self, **repo_data)
             self.revision += 1
 
         self._modified.set()
@@ -100,12 +100,12 @@ class Model:
             repo = self.repos.get(repo_id)
 
             if repo is None:
-                repo = Repo(self, tags={})
+                repo = _Repo(self)
                 self.repos[repo_id] = repo
 
-            repo.tags[tag_id] = Tag(self, repo, **tag_data)
-            repo._compute_digest()
+            repo.tags[tag_id] = _Tag(self, repo, **tag_data)
 
+            repo._compute_digest()
             self.revision += 1
 
         self._modified.set()
@@ -115,8 +115,43 @@ class Model:
             repo = self.repos[repo_id]
 
             del repo.tags[tag_id]
-            repo._compute_digest()
 
+            repo._compute_digest()
+            self.revision += 1
+
+        self._modified.set()
+
+    def put_artifact(self, repo_id, tag_id, artifact_id, artifact_data):
+        with self._lock:
+            repo = self.repos.get(repo_id)
+
+            if repo is None:
+                repo = _Repo(self)
+                self.repos[repo_id] = repo
+
+            tag = repo.tags.get(tag_id)
+
+            if tag is None:
+                tag = _Tag(self, repo)
+                repo.tags[tag_id] = tag
+
+            tag.artifacts[artifact_id] = _Artifact.create(self, tag, **artifact_data)
+
+            tag._compute_digest()
+            repo._compute_digest()
+            self.revision += 1
+
+        self._modified.set()
+
+    def delete_artifact(self, repo_id, tag_id, artifact_id):
+        with self._lock:
+            repo = self.repos[repo_id]
+            tag = repo.tags[tag_id]
+
+            del tag.artifacts[artifact_id]
+
+            tag._compute_digest()
+            repo._compute_digest()
             self.revision += 1
 
         self._modified.set()
@@ -144,14 +179,14 @@ class _ModelObject:
     def _compute_digest(self):
         self.digest = _binascii.crc32(self.json().encode("utf-8"))
 
-class Repo(_ModelObject):
+class _Repo(_ModelObject):
     def __init__(self, model, tags={}):
         super().__init__(model)
 
         self.tags = dict()
 
         for tag_id, tag_data in tags.items():
-            self.tags[tag_id] = Tag(self.model, self, **tag_data)
+            self.tags[tag_id] = _Tag(self.model, self, **tag_data)
 
         self._compute_digest()
 
@@ -164,7 +199,7 @@ class Repo(_ModelObject):
 
         return fields
 
-class Tag(_ModelObject):
+class _Tag(_ModelObject):
     def __init__(self, model, repo, build_id=None, build_url=None, artifacts={}):
         super().__init__(model)
 
@@ -175,11 +210,7 @@ class Tag(_ModelObject):
         self.artifacts = dict()
 
         for artifact_id, artifact_data in artifacts.items():
-            if "type" not in artifact_data:
-                raise DataError(f"Artifact has no type field")
-
-            cls = _Artifact._subclasses_by_type[artifact_data["type"]]
-            self.artifacts[artifact_id] = cls(self.model, self, **artifact_data)
+            self.artifacts[artifact_id] = _Artifact.create(self.model, self, **artifact_data)
 
         self._compute_digest()
 
@@ -193,6 +224,16 @@ class Tag(_ModelObject):
         return fields
 
 class _Artifact(_ModelObject):
+    @staticmethod
+    def create(model, tag, **artifact_data):
+        if "type" not in artifact_data:
+            raise DataError("Artifact data has no type field")
+
+        cls = _Artifact._subclasses_by_type[artifact_data["type"]]
+        obj = cls(model, tag, **artifact_data)
+
+        return obj
+
     def __init__(self, model, tag, type=None):
         super().__init__(model)
 
@@ -202,7 +243,7 @@ class _Artifact(_ModelObject):
     def data(self):
         return super().data(exclude=["tag"])
 
-class ContainerImageArtifact(_Artifact):
+class _ContainerArtifact(_Artifact):
     def __init__(self, model, tag, type=None, registry_url=None, repository=None, image_id=None):
         super().__init__(model, tag, type=type)
 
@@ -212,7 +253,7 @@ class ContainerImageArtifact(_Artifact):
 
         self._compute_digest()
 
-class MavenArtifact(_Artifact):
+class _MavenArtifact(_Artifact):
     def __init__(self, model, tag, type=None, repository_url=None, group_id=None, artifact_id=None, version=None):
         super().__init__(model, tag, type=type)
 
@@ -223,7 +264,7 @@ class MavenArtifact(_Artifact):
 
         self._compute_digest()
 
-class FileArtifact(_Artifact):
+class _FileArtifact(_Artifact):
     def __init__(self, model, tag, type=None, url=None):
         super().__init__(model, tag, type=type)
 
@@ -231,7 +272,7 @@ class FileArtifact(_Artifact):
 
         self._compute_digest()
 
-class RpmArtifact(_Artifact):
+class _RpmArtifact(_Artifact):
     def __init__(self, model, tag, type=None, repository_url=None, name=None, version=None, release=None):
         super().__init__(model, tag, type=type)
 
@@ -243,10 +284,10 @@ class RpmArtifact(_Artifact):
         self._compute_digest()
 
 _Artifact._subclasses_by_type = {
-    "container-image": ContainerImageArtifact,
-    "maven": MavenArtifact,
-    "file": FileArtifact,
-    "rpm": RpmArtifact,
+    "container-image": _ContainerArtifact,
+    "maven": _MavenArtifact,
+    "file": _FileArtifact,
+    "rpm": _RpmArtifact,
 }
 
 class _SaveThread(_threading.Thread):

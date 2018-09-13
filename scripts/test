@@ -20,6 +20,10 @@
 
 from plano import *
 
+repo_1 = {
+    "tags": {}
+}
+
 tag_1 = {
     "build_id": "XXX",
     "build_url": "XXX",
@@ -38,6 +42,11 @@ tag_1 = {
     },
 }
 
+artifact_1 = {
+    "type": "file",
+    "url": "http://download-node-03.eng.bos.redhat.com/devel/candidates/amq/AMQ-CLIENTS-2.1.0/qpid-jms-0.34.0.redhat-00003-bin.zip",
+}
+
 curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/json'"
 
 def put(url, data):
@@ -54,7 +63,6 @@ def head(url):
     print(f"HEAD {url} -> ", end="", flush=True)
     call("curl --head --include {} {}", url, curl_options)
 
-
 def delete(url):
     print(f"DELETE {url} -> ", end="", flush=True)
     call("curl -X DELETE {} {}", url, curl_options)
@@ -67,7 +75,9 @@ with working_dir("build"):
 try:
     sleep(0.2)
 
+    put("http://localhost:8080/api/repos/rh-qpid-jms", repo_1)
     put("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested", tag_1)
+    put("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip", artifact_1)
 
     get("http://localhost:8080/api/repos/rh-qpid-jms")
     get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
@@ -75,12 +85,14 @@ try:
 
     head("http://localhost:8080/api/repos/rh-qpid-jms")
     head("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
+    head("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
 
+    delete("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
     delete("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
     delete("http://localhost:8080/api/repos/rh-qpid-jms")
 
     call("scripts/load-demo-data")
     get("http://localhost:8080/api/data")
-    # head("http://localhost:8080/api/data")
+    head("http://localhost:8080/api/data")
 finally:
     terminate_process(server)
