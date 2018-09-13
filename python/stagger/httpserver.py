@@ -88,15 +88,15 @@ class _BadDataResponse(PlainTextResponse):
 async def _serve_data(request):
     model = request["app"].model
 
-    headers = {
-        "ETag": f"\"{model.revision}\"",
-    }
-
     if request.method == "GET":
-        return JSONResponse(model.data(), headers=headers)
+        response = JSONResponse(model.data())
+        response.headers["ETag"] = f"\"{model.revision}\""
+        return response
 
     if request.method == "HEAD":
-        return Response("", headers=headers)
+        response = Response("")
+        response.headers["ETag"] = f"\"{model.revision}\""
+        return response
 
 @asgi_application
 async def _serve_repo(request):
@@ -129,15 +129,15 @@ async def _serve_repo(request):
     except KeyError as e:
         return _NotFoundResponse(e)
 
-    headers = {
-        "ETag": f"\"{repo.digest}\"",
-    }
-
     if request.method == "GET":
-        return JSONResponse(repo.data())
+        response = JSONResponse(repo.data())
+        response.headers["ETag"] = f"\"{repo.digest}\""
+        return response
 
     if request.method == "HEAD":
-        return Response("", headers=headers)
+        response = Response("")
+        response.headers["ETag"] = f"\"{repo.digest}\""
+        return response
 
 @asgi_application
 async def _serve_tag(request):
@@ -171,15 +171,15 @@ async def _serve_tag(request):
     except KeyError as e:
         return _NotFoundResponse(e)
 
-    headers = {
-        "ETag": f"\"{tag.digest}\"",
-    }
-
     if request.method == "GET":
-        return JSONResponse(tag.data(), headers=headers)
+        response = JSONResponse(tag.data())
+        response.headers["ETag"] = f"\"{tag.digest}\""
+        return response
 
     if request.method == "HEAD":
-        return Response("", headers=headers)
+        response = Response("")
+        response.headers["ETag"] = f"\"{tag.digest}\""
+        return response
 
 @asgi_application
 async def _serve_artifact(request):
@@ -214,12 +214,12 @@ async def _serve_artifact(request):
     except KeyError as e:
         return _NotFoundResponse(e)
 
-    headers = {
-        "ETag": f"\"{artifact.digest}\"",
-    }
-
     if request.method == "GET":
-        return JSONResponse(artifact.data(), headers=headers)
+        response = JSONResponse(artifact.data())
+        response.headers["ETag"] = f"\"{artifact.digest}\""
+        return response
 
     if request.method == "HEAD":
-        return Response("", headers=headers)
+        response = Response("")
+        response.headers["ETag"] = f"\"{artifact.digest}\""
+        return response
