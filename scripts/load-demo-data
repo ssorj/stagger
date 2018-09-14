@@ -1,6 +1,12 @@
 #!/bin/bash
 
-curl -X PUT http://localhost:8080/api/repos/rh-pooled-jms/tags/master-untested -d @- <<EOF
+if [[ -z $1 ]]; then
+    url=http://localhost:8080
+elif
+    url=$1
+fi
+
+curl -X PUT $url/api/repos/rh-pooled-jms/tags/master-untested -d @- <<EOF
 {
     "build_id": "197",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/pooled-jms-maven-master-rhel/detail/central-ci/197/pipeline",
@@ -16,7 +22,7 @@ curl -X PUT http://localhost:8080/api/repos/rh-pooled-jms/tags/master-untested -
 }
 EOF
 
-curl -X PUT http://localhost:8080/api/repos/rh-qpid-jms/tags/master-untested -d @- <<EOF
+curl -X PUT $url/api/repos/rh-qpid-jms/tags/master-untested -d @- <<EOF
 {
     "build_id": "877",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/jms-maven-master-rhel/detail/central-ci/877/pipeline",
@@ -32,7 +38,7 @@ curl -X PUT http://localhost:8080/api/repos/rh-qpid-jms/tags/master-untested -d 
 }
 EOF
 
-curl -X PUT http://localhost:8080/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
+curl -X PUT $url/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
 {
     "build_id": "14",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/dispatch-rpm-master-rhel/detail/central-ci/14/pipeline",
@@ -54,7 +60,7 @@ curl -X PUT http://localhost:8080/api/repos/rh-qpid-dispatch/tags/master-unteste
 }
 EOF
 
-curl -X PUT http://localhost:8080/api/repos/rh-qpid-proton/tags/master-untested -d @- <<EOF
+curl -X PUT $url/api/repos/rh-qpid-proton/tags/master-untested -d @- <<EOF
 {
     "build_id": "XXX",
     "build_url": "XXX",
