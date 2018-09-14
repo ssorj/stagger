@@ -25,7 +25,8 @@ import os as _os
 import uvicorn as _uvicorn
 
 from .model import *
-from starlette import *
+from starlette.requests import *
+from starlette.responses import *
 from starlette.routing import *
 from starlette.staticfiles import *
 
@@ -41,13 +42,13 @@ class HttpServer:
 
         routes = [
             Path("/api/data/?",
-                 app=_serve_data, methods=["GET", "HEAD"]),
+                 app=_DataHandler, methods=["GET", "HEAD"]),
             Path("/api/repos/{repo_id}/?",
-                 app=_serve_repo, methods=["PUT", "DELETE", "GET", "HEAD"]),
+                 app=_RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/?",
-                 app=_serve_tag, methods=["PUT", "DELETE", "GET", "HEAD"]),
+                 app=_TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}/?",
-                 app=_serve_artifact, methods=["PUT", "DELETE", "GET", "HEAD"]),
+                 app=_ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/", StaticFile(path=_os.path.join(self.app.home, "static", "index.html"))),
             PathPrefix("", StaticFiles(directory=_os.path.join(self.app.home, "static"))),
         ]
@@ -90,166 +91,178 @@ class _BadDataResponse(PlainTextResponse):
         super().__init__(message, 400)
         print(message)
 
-@asgi_application
-async def _serve_data(request):
-    model = request["app"].model
+class _AsgiHandler:
+    def __init__(self, scope):
+        self.scope = scope
 
-    server_etag = str(model.revision)
-    client_etag = request.headers.get("If-None-Match")
+    async def __call__(self, receive, send):
+        request = Request(self.scope, receive)
+        response = await self.handle(request)
+        await response(receive, send)
 
-    if client_etag is not None and client_etag == server_etag:
-        return _NotModifiedResponse()
+    async def handle(self, request):
+        raise NotImplementedError()
 
-    if request.method == "GET":
-        response = JSONResponse(model.data())
-        response.headers["ETag"] = f"\"{model.revision}\""
-        return response
+class _DataHandler(_AsgiHandler):
+    async def handle(self, request):
+        model = request["app"].model
 
-    if request.method == "HEAD":
-        response = Response("")
-        response.headers["ETag"] = f"\"{model.revision}\""
-        return response
+        server_etag = str(model.revision)
+        client_etag = request.headers.get("If-None-Match")
 
-@asgi_application
-async def _serve_repo(request):
-    model = request["app"].model
-    repo_id = request["kwargs"]["repo_id"]
+        if client_etag is not None and client_etag == server_etag:
+            return _NotModifiedResponse()
 
-    if request.method == "PUT":
+        if request.method == "GET":
+            response = JSONResponse(model.data())
+            response.headers["ETag"] = f"\"{model.revision}\""
+            return response
+
+        if request.method == "HEAD":
+            response = Response("")
+            response.headers["ETag"] = f"\"{model.revision}\""
+            return response
+
+class _RepoHandler(_AsgiHandler):
+    async def handle(self, request):
+        model = request["app"].model
+        repo_id = request["kwargs"]["repo_id"]
+
+        if request.method == "PUT":
+            try:
+                repo_data = await request.json()
+            except _json_decoder.JSONDecodeError as e:
+                return _BadJsonResponse(e)
+
+            try:
+                model.put_repo(repo_id, repo_data)
+            except DataError as e:
+                return _BadDataResponse(e)
+
+            return Response("")
+
+        if request.method == "DELETE":
+            try:
+                model.delete_repo(repo_id)
+            except KeyError as e:
+                return _NotFoundResponse(e)
+
+            return Response("")
+
         try:
-            repo_data = await request.json()
-        except _json_decoder.JSONDecodeError as e:
-            return _BadJsonResponse(e)
-
-        try:
-            model.put_repo(repo_id, repo_data)
-        except DataError as e:
-            return _BadDataResponse(e)
-
-        return Response("")
-
-    if request.method == "DELETE":
-        try:
-            model.delete_repo(repo_id)
+            repo = model.repos[repo_id]
         except KeyError as e:
             return _NotFoundResponse(e)
 
-        return Response("")
+        server_etag = str(repo.digest)
+        client_etag = request.headers.get("If-None-Match")
 
-    try:
-        repo = model.repos[repo_id]
-    except KeyError as e:
-        return _NotFoundResponse(e)
+        if client_etag is not None and client_etag == server_etag:
+            return _NotModifiedResponse()
 
-    server_etag = str(repo.digest)
-    client_etag = request.headers.get("If-None-Match")
+        if request.method == "GET":
+            response = JSONResponse(repo.data())
+            response.headers["ETag"] = f"\"{repo.digest}\""
+            return response
 
-    if client_etag is not None and client_etag == server_etag:
-        return _NotModifiedResponse()
+        if request.method == "HEAD":
+            response = Response("")
+            response.headers["ETag"] = f"\"{repo.digest}\""
+            return response
 
-    if request.method == "GET":
-        response = JSONResponse(repo.data())
-        response.headers["ETag"] = f"\"{repo.digest}\""
-        return response
+class _TagHandler(_AsgiHandler):
+    async def handle(self, request):
+        model = request["app"].model
+        repo_id = request["kwargs"]["repo_id"]
+        tag_id = request["kwargs"]["tag_id"]
 
-    if request.method == "HEAD":
-        response = Response("")
-        response.headers["ETag"] = f"\"{repo.digest}\""
-        return response
+        if request.method == "PUT":
+            try:
+                tag_data = await request.json()
+            except _json_decoder.JSONDecodeError as e:
+                return _BadJsonResponse(e)
 
-@asgi_application
-async def _serve_tag(request):
-    model = request["app"].model
-    repo_id = request["kwargs"]["repo_id"]
-    tag_id = request["kwargs"]["tag_id"]
+            try:
+                model.put_tag(repo_id, tag_id, tag_data)
+            except DataError as e:
+                return _BadDataResponse(e)
 
-    if request.method == "PUT":
+            return Response("")
+
+        if request.method == "DELETE":
+            try:
+                model.delete_tag(repo_id, tag_id)
+            except KeyError as e:
+                return _NotFoundResponse(e)
+
+            return Response("")
+
         try:
-            tag_data = await request.json()
-        except _json_decoder.JSONDecodeError as e:
-            return _BadJsonResponse(e)
-
-        try:
-            model.put_tag(repo_id, tag_id, tag_data)
-        except DataError as e:
-            return _BadDataResponse(e)
-
-        return Response("")
-
-    if request.method == "DELETE":
-        try:
-            model.delete_tag(repo_id, tag_id)
+            tag = model.repos[repo_id].tags[tag_id]
         except KeyError as e:
             return _NotFoundResponse(e)
 
-        return Response("")
+        server_etag = str(tag.digest)
+        client_etag = request.headers.get("If-None-Match")
 
-    try:
-        tag = model.repos[repo_id].tags[tag_id]
-    except KeyError as e:
-        return _NotFoundResponse(e)
+        if client_etag is not None and client_etag == server_etag:
+            return _NotModifiedResponse()
 
-    server_etag = str(tag.digest)
-    client_etag = request.headers.get("If-None-Match")
+        if request.method == "GET":
+            response = JSONResponse(tag.data())
+            response.headers["ETag"] = f"\"{tag.digest}\""
+            return response
 
-    if client_etag is not None and client_etag == server_etag:
-        return _NotModifiedResponse()
+        if request.method == "HEAD":
+            response = Response("")
+            response.headers["ETag"] = f"\"{tag.digest}\""
+            return response
 
-    if request.method == "GET":
-        response = JSONResponse(tag.data())
-        response.headers["ETag"] = f"\"{tag.digest}\""
-        return response
+class _ArtifactHandler(_AsgiHandler):
+    async def handle(self, request):
+        model = request["app"].model
+        repo_id = request["kwargs"]["repo_id"]
+        tag_id = request["kwargs"]["tag_id"]
+        artifact_id = request["kwargs"]["artifact_id"]
 
-    if request.method == "HEAD":
-        response = Response("")
-        response.headers["ETag"] = f"\"{tag.digest}\""
-        return response
+        if request.method == "PUT":
+            try:
+                artifact_data = await request.json()
+            except _json_decoder.JSONDecodeError as e:
+                return _BadJsonResponse(e)
 
-@asgi_application
-async def _serve_artifact(request):
-    model = request["app"].model
-    repo_id = request["kwargs"]["repo_id"]
-    tag_id = request["kwargs"]["tag_id"]
-    artifact_id = request["kwargs"]["artifact_id"]
+            try:
+                model.put_artifact(repo_id, tag_id, artifact_id, artifact_data)
+            except DataError as e:
+                return _BadDataResponse(e)
 
-    if request.method == "PUT":
+            return Response("")
+
+        if request.method == "DELETE":
+            try:
+                model.delete_artifact(repo_id, tag_id, artifact_id)
+            except KeyError as e:
+                return _NotFoundResponse(e)
+
+            return Response("")
+
         try:
-            artifact_data = await request.json()
-        except _json_decoder.JSONDecodeError as e:
-            return _BadJsonResponse(e)
-
-        try:
-            model.put_artifact(repo_id, tag_id, artifact_id, artifact_data)
-        except DataError as e:
-            return _BadDataResponse(e)
-
-        return Response("")
-
-    if request.method == "DELETE":
-        try:
-            model.delete_artifact(repo_id, tag_id, artifact_id)
+            artifact = model.repos[repo_id].tags[tag_id].artifacts[artifact_id]
         except KeyError as e:
             return _NotFoundResponse(e)
 
-        return Response("")
+        server_etag = str(artifact.digest)
+        client_etag = request.headers.get("If-None-Match")
 
-    try:
-        artifact = model.repos[repo_id].tags[tag_id].artifacts[artifact_id]
-    except KeyError as e:
-        return _NotFoundResponse(e)
+        if client_etag is not None and client_etag == server_etag:
+            return _NotModifiedResponse()
 
-    server_etag = str(artifact.digest)
-    client_etag = request.headers.get("If-None-Match")
+        if request.method == "GET":
+            response = JSONResponse(artifact.data())
+            response.headers["ETag"] = f"\"{artifact.digest}\""
+            return response
 
-    if client_etag is not None and client_etag == server_etag:
-        return _NotModifiedResponse()
-
-    if request.method == "GET":
-        response = JSONResponse(artifact.data())
-        response.headers["ETag"] = f"\"{artifact.digest}\""
-        return response
-
-    if request.method == "HEAD":
-        response = Response("")
-        response.headers["ETag"] = f"\"{artifact.digest}\""
-        return response
+        if request.method == "HEAD":
+            response = Response("")
+            response.headers["ETag"] = f"\"{artifact.digest}\""
+            return response
