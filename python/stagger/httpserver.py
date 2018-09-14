@@ -97,35 +97,53 @@ class _AsgiHandler:
 
     async def __call__(self, receive, send):
         request = Request(self.scope, receive)
-        response = await self.handle(request)
-        await response(receive, send)
+        request.app = request["app"]
 
-    async def handle(self, request):
-        raise NotImplementedError()
+        response = await self.process(request)
 
-class _DataHandler(_AsgiHandler):
-    async def handle(self, request):
-        model = request["app"].model
+        if response is not None:
+            await response(receive, send)
+            return
 
-        server_etag = str(model.revision)
+        server_etag = self.etag(request)
         client_etag = request.headers.get("If-None-Match")
 
-        if client_etag is not None and client_etag == server_etag:
-            return _NotModifiedResponse()
+        if client_etag is not None and server_etag is not None:
+            if client_etag == server_etag:
+                response = _NotModifiedResponse()
+                await response(receive, send)
+                return
 
-        if request.method == "GET":
-            response = JSONResponse(model.data())
-            response.headers["ETag"] = f"\"{model.revision}\""
-            return response
+        response = await self.render(request)
 
+        if server_etag is not None:
+            response.headers["ETag"] = f'"{server_etag}"'
+
+        await response(receive, send)
+
+    def etag(self, request):
+        pass
+
+    async def process(self, request):
+        pass
+
+    async def render(self, request):
+        pass
+
+class _DataHandler(_AsgiHandler):
+    async def process(self, request):
         if request.method == "HEAD":
-            response = Response("")
-            response.headers["ETag"] = f"\"{model.revision}\""
-            return response
+            return Response("")
+
+    def etag(self, request):
+        return str(request.app.model.revision)
+
+    async def render(self, request):
+        return JSONResponse(request.app.model.data())
 
 class _RepoHandler(_AsgiHandler):
-    async def handle(self, request):
-        model = request["app"].model
+    async def process(self, request):
+        model = request.app.model
         repo_id = request["kwargs"]["repo_id"]
 
         if request.method == "PUT":
@@ -149,30 +167,23 @@ class _RepoHandler(_AsgiHandler):
 
             return Response("")
 
+        if request.method == "HEAD":
+            return Response("")
+
         try:
-            repo = model.repos[repo_id]
+            request.repo = model.repos[repo_id]
         except KeyError as e:
             return _NotFoundResponse(e)
 
-        server_etag = str(repo.digest)
-        client_etag = request.headers.get("If-None-Match")
+    def etag(self, request):
+        return str(request.repo.digest)
 
-        if client_etag is not None and client_etag == server_etag:
-            return _NotModifiedResponse()
-
-        if request.method == "GET":
-            response = JSONResponse(repo.data())
-            response.headers["ETag"] = f"\"{repo.digest}\""
-            return response
-
-        if request.method == "HEAD":
-            response = Response("")
-            response.headers["ETag"] = f"\"{repo.digest}\""
-            return response
+    async def render(self, request):
+        return JSONResponse(request.repo.data())
 
 class _TagHandler(_AsgiHandler):
-    async def handle(self, request):
-        model = request["app"].model
+    async def process(self, request):
+        model = request.app.model
         repo_id = request["kwargs"]["repo_id"]
         tag_id = request["kwargs"]["tag_id"]
 
@@ -197,30 +208,23 @@ class _TagHandler(_AsgiHandler):
 
             return Response("")
 
+        if request.method == "HEAD":
+            return Response("")
+
         try:
-            tag = model.repos[repo_id].tags[tag_id]
+            request.tag = model.repos[repo_id].tags[tag_id]
         except KeyError as e:
             return _NotFoundResponse(e)
 
-        server_etag = str(tag.digest)
-        client_etag = request.headers.get("If-None-Match")
+    def etag(self, request):
+        return str(request.tag.digest)
 
-        if client_etag is not None and client_etag == server_etag:
-            return _NotModifiedResponse()
-
-        if request.method == "GET":
-            response = JSONResponse(tag.data())
-            response.headers["ETag"] = f"\"{tag.digest}\""
-            return response
-
-        if request.method == "HEAD":
-            response = Response("")
-            response.headers["ETag"] = f"\"{tag.digest}\""
-            return response
+    async def render(self, request):
+        return JSONResponse(request.tag.data())
 
 class _ArtifactHandler(_AsgiHandler):
-    async def handle(self, request):
-        model = request["app"].model
+    async def process(self, request):
+        model = request.app.model
         repo_id = request["kwargs"]["repo_id"]
         tag_id = request["kwargs"]["tag_id"]
         artifact_id = request["kwargs"]["artifact_id"]
@@ -246,23 +250,16 @@ class _ArtifactHandler(_AsgiHandler):
 
             return Response("")
 
+        if request.method == "HEAD":
+            return Response("")
+
         try:
-            artifact = model.repos[repo_id].tags[tag_id].artifacts[artifact_id]
+            request.artifact = model.repos[repo_id].tags[tag_id].artifacts[artifact_id]
         except KeyError as e:
             return _NotFoundResponse(e)
 
-        server_etag = str(artifact.digest)
-        client_etag = request.headers.get("If-None-Match")
+    def etag(self, request):
+        return str(request.artifact.digest)
 
-        if client_etag is not None and client_etag == server_etag:
-            return _NotModifiedResponse()
-
-        if request.method == "GET":
-            response = JSONResponse(artifact.data())
-            response.headers["ETag"] = f"\"{artifact.digest}\""
-            return response
-
-        if request.method == "HEAD":
-            response = Response("")
-            response.headers["ETag"] = f"\"{artifact.digest}\""
-            return response
+    async def render(self, request):
+        return JSONResponse(request.artifact.data())

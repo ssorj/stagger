@@ -1,10 +1,12 @@
 #!/bin/bash
 
-if [[ -z $1 ]]; then
-    url=http://localhost:8080
-elif
-    url=$1
-fi
+# if [[ -z $1 ]]; then
+#     url=http://localhost:8080
+# elif
+#     url=$1
+# fi
+
+url=http://localhost:8080
 
 curl -X PUT $url/api/repos/rh-pooled-jms/tags/master-untested -d @- <<EOF
 {
