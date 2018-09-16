@@ -41,13 +41,13 @@ class HttpServer:
         self.port = port
 
         routes = [
-            Path("/api/data/?",
+            Path("/api/data",
                  app=_DataHandler, methods=["GET", "HEAD"]),
-            Path("/api/repos/{repo_id}/?",
+            Path("/api/repos/{repo_id}",
                  app=_RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Path("/api/repos/{repo_id}/tags/{tag_id}/?",
+            Path("/api/repos/{repo_id}/tags/{tag_id}",
                  app=_TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}/?",
+            Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}",
                  app=_ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Path("/", StaticFile(path=_os.path.join(self.app.home, "static", "index.html"))),
             PathPrefix("", StaticFiles(directory=_os.path.join(self.app.home, "static"))),
@@ -121,10 +121,10 @@ class _AsgiHandler:
 
         await response(receive, send)
 
-    def etag(self, request):
+    async def process(self, request):
         pass
 
-    async def process(self, request):
+    def etag(self, request):
         pass
 
     async def render(self, request):
