@@ -33,7 +33,13 @@
                   let json = JSON.parse(text);
 
                   text = JSON.stringify(json, null, 4);
-                  text = hljs.highlight("json", text).value;
+
+                  try {
+                      text = hljs.highlight("json", text).value;
+                  } catch (e) {
+                      // XXX
+                  }
+
                   text = text.replace(/"(https?:\/\/.*?)"/g, "\"<a href=\"$1\">$1</a>\"");
               }
 
