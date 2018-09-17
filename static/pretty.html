@@ -34,20 +34,22 @@
 
                   text = JSON.stringify(json, null, 4);
 
-                  try {
+                  if (hljs != null) {
                       text = hljs.highlight("json", text).value;
-                  } catch (e) {
-                      // XXX
                   }
 
                   text = text.replace(/"(https?:\/\/.*?)"/g, "\"<a href=\"$1\">$1</a>\"");
               }
 
+              let elem = gesso.createElement(null, "pre", {"class": "data"});
+
               try {
-                  $("#content").innerHTML = text;
+                  elem.innerHTML = text;
               } catch (e) {
-                  $("#content").textContent = "[Error! The data isn't what I expected]";
+                  elem.textContent = "[Error! The data isn't what I expected]";
               }
+
+              gesso.replaceElement($("#content"), elem);
           }
 
           function errorHandler(event) {
@@ -66,6 +68,6 @@
   <body>
     <p><a id="link"></a></p>
 
-    <pre id="content" class="json">[Loading...]</pre>
+    <div id="content"><span class="notice">Loading</span></div>
   </body>
 </html>

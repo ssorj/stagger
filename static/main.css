@@ -43,7 +43,7 @@ br {
 }
 
 body {
-    font: 13pt/19pt "Source Sans Pro", sans-serif;
+    font: 10pt/14pt "Source Sans Pro", sans-serif;
     font-weight: 400;
     color: rgba(0, 0, 0, 0.8);
     text-rendering: optimizeLegibility;
@@ -51,21 +51,12 @@ body {
 
 code,
 pre {
-    font: 11pt "Ubuntu Mono", monospace;
+    font: 9pt "Ubuntu Mono", monospace;
 }
 
 h1,
 h2 {
     font-weight: 400;
-}
-
-h1 a,
-h2 a,
-h3 a,
-h4 a,
-h5 a,
-h6 a {
-    color: inherit;
 }
 
 a {
@@ -162,5 +153,78 @@ section {
 }
 
 body {
-    margin: 2em;
+    margin: 2.4em 2em;
+}
+
+h1 {
+    margin-bottom: 1.4em;
+}
+
+span.notice {
+    font-style: italic;
+}
+
+div.repo div {
+    vertical-align: top;
+}
+
+div.repo a {
+    vertical-align: top;
+}
+
+div.repo {
+    margin-bottom: 2em;
+}
+
+div.repo-id {
+    display: inline-block;
+    font-weight: 600;
+    width: 24em;
+    margin-bottom: 1em;
+}
+
+a.repo-data {
+    display: inline-block;
+    width: 8em;
+}
+
+div.tag-id {
+    display: inline-block;
+    width: 24em;
+    margin-bottom: 1em;
+}
+
+a.tag-data {
+    display: inline-block;
+    width: 8em;
+}
+
+a.tag-build {
+    display: inline-block;
+}
+
+div.artifact-id {
+    display: inline-block;
+    width: 24em;
+    margin-bottom: 1em;
+    padding-left: 2em;
+}
+
+a.artifact-data {
+    display: inline-block;
+    width: 8em;
+}
+
+a.artifact-coords {
+    display: inline-block;
+}
+
+p.footer {
+    margin-top: 2em;
+}
+
+pre.data {
+    padding: 0;
+    background-color: inherit;
+    overflow: inherit;
 }
