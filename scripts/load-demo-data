@@ -1,12 +1,28 @@
 #!/bin/bash
 
-# if [[ -z $1 ]]; then
-#     url=http://localhost:8080
-# elif
-#     url=$1
-# fi
+if [[ -z $1 ]]; then
+    url=http://localhost:8080
+else
+    url=$1
+fi
 
-url=http://localhost:8080
+set -ex
+
+curl -X PUT $url/api/repos/rh-pooled-jms/tags/master-tested -d @- <<EOF
+{
+    "build_id": "196",
+    "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/pooled-jms-maven-master-rhel/detail/central-ci/196/pipeline",
+    "artifacts": {
+        "pooled-jms-maven": {
+            "type": "maven",
+            "repository_url": "http://rhm.usersys.redhat.com/zips/packages/pooled-jms/20180809.35558e5/",
+            "group_id": "org.messaginghub",
+            "artifact_id": "pooled-jms",
+            "version": "1.0.3-SNAPSHOT"
+        }
+    }
+}
+EOF
 
 curl -X PUT $url/api/repos/rh-pooled-jms/tags/master-untested -d @- <<EOF
 {
@@ -40,7 +56,7 @@ curl -X PUT $url/api/repos/rh-qpid-jms/tags/master-untested -d @- <<EOF
 }
 EOF
 
-curl -X PUT $url/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
+curl -v -X PUT $url/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
 {
     "build_id": "14",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/dispatch-rpm-master-rhel/detail/central-ci/14/pipeline",
@@ -62,10 +78,10 @@ curl -X PUT $url/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
 }
 EOF
 
-curl -X PUT $url/api/repos/rh-qpid-proton/tags/master-untested -d @- <<EOF
+curl -v -X PUT $url/api/repos/rh-qpid-proton/tags/master-tested -d @- <<EOF
 {
-    "build_id": "XXX",
-    "build_url": "XXX",
+    "build_id": "1198",
+    "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/proton-rpm-master-rhel/job/central-ci/1198/",
     "artifacts": {
         "python-qpid-proton-el7-rpm": {
             "type": "rpm",

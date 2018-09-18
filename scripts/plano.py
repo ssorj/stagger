@@ -536,6 +536,25 @@ class temp_working_dir(working_dir):
         if exists(self.dir):
             _shutil.rmtree(self.dir, ignore_errors=True)
 
+class working_env(object):
+    def __init__(self, **env_vars):
+        self.env_vars = env_vars
+        self.prev_env_vars = dict()
+
+    def __enter__(self):
+        for name, value in self.env_vars.items():
+            if name in ENV:
+                self.prev_env_vars[name] = ENV[name]
+
+            ENV[name] = str(value)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for name, value in self.env_vars.items():
+            if name in self.prev_env_vars:
+                ENV[name] = self.prev_env_vars[name]
+            else:
+                del ENV[name]
+
 def call(command, *args, **kwargs):
     proc = start_process(command, *args, **kwargs)
     check_process(proc)

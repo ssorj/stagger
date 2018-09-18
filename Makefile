@@ -63,7 +63,7 @@ test: build
 
 .PHONY: run
 run: build
-	stagger
+	STAGGER_HTTP_PORT=9090 stagger
 
 .PHONY: build-image
 build-image:

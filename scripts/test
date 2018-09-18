@@ -69,30 +69,34 @@ def delete(url):
 
 enable_logging(level="warn")
 
+port = random_port()
+
 with working_dir("build"):
-    server = start_process("stagger")
+    with working_env(STAGGER_HTTP_PORT=port):
+        server = start_process("stagger")
 
 try:
     sleep(0.2)
 
-    put("http://localhost:8080/api/repos/rh-qpid-jms", repo_1)
-    put("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested", tag_1)
-    put("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip", artifact_1)
+    put(f"http://localhost:{port}/api/repos/rh-qpid-jms", repo_1)
+    put(f"http://localhost:{port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested", tag_1)
+    put(f"http://localhost:{port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip", artifact_1)
 
-    get("http://localhost:8080/api/repos/rh-qpid-jms")
-    get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
-    get("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
+    get(f"http://localhost:{port}/api/repos/rh-qpid-jms")
+    get(f"http://localhost:{port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
+    get(f"http://localhost:{port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
 
-    head("http://localhost:8080/api/repos/rh-qpid-jms")
-    head("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
-    head("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
+    head(f"http://localhost:{port}/api/repos/rh-qpid-jms")
+    head(f"http://localhost:{port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
+    head(f"http://localhost:{port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
 
-    delete("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
-    delete("http://localhost:8080/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
-    delete("http://localhost:8080/api/repos/rh-qpid-jms")
+    delete(f"http://localhost:{port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
+    delete(f"http://localhost:{port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
+    delete(f"http://localhost:{port}/api/repos/rh-qpid-jms")
 
-    call("scripts/load-demo-data")
-    get("http://localhost:8080/api/data")
-    head("http://localhost:8080/api/data")
+    call("scripts/load-demo-data http://localhost:{}", port)
+
+    get(f"http://localhost:{port}/api/data")
+    head(f"http://localhost:{port}/api/data")
 finally:
     terminate_process(server)

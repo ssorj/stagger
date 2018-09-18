@@ -23,12 +23,16 @@ from .model import *
 from .httpserver import *
 
 class Application:
-    def __init__(self, home, data_dir=None):
+    def __init__(self, home, data_dir=None, http_port=None):
         self.home = home
         self.data_dir = data_dir
+        self.http_port = http_port
 
         if self.data_dir is None:
             self.data_dir = _os.path.join(self.home, "data")
+
+        if self.http_port is None:
+            self.http_port = 8080
 
         self.model = None
 
@@ -44,7 +48,7 @@ class Application:
         self.model.load()
         self.model.start()
 
-        server = HttpServer(self)
+        server = HttpServer(self, port=self.http_port)
         server.run()
 
 if __name__ == "__main__":

@@ -29,6 +29,7 @@ from stagger.app import *
 
 if __name__ == "__main__":
     data_dir = os.environ.get("STAGGER_DATA_DIR")
+    http_port = int(os.environ.get("STAGGER_HTTP_PORT"))
 
-    app = Application(home, data_dir=data_dir)
+    app = Application(home, data_dir=data_dir, http_port=http_port)
     app.run()
