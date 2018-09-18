@@ -133,15 +133,16 @@ def exit(arg=None, *args):
     if _is_string(arg):
         error(arg, args)
         _sys.exit(1)
-    elif isinstance(arg, _types.IntType):
+
+    if isinstance(arg, int):
         if arg > 0:
             error("Exiting with code {0}", arg)
         else:
             notice("Exiting with code {0}", arg)
 
         _sys.exit(arg)
-    else:
-        raise Exception()
+
+    raise Exception()
 
 def _print_message(category, message, args):
     if _message_output is None:
@@ -175,8 +176,8 @@ def eprint(*args, **kwargs):
     print(*args, file=_sys.stderr, **kwargs)
 
 def flush():
-    _sys.stdout.flush()
-    _sys.stderr.flush()
+    STDOUT.flush()
+    STDERR.flush()
 
 absolute_path = _os.path.abspath
 normalize_path = _os.path.normpath
@@ -237,6 +238,8 @@ def program_name(command=None):
             return file_name(arg)
 
 def which(program_name):
+    assert "PATH" in ENV
+
     for dir in ENV["PATH"].split(PATH_VAR_SEP):
         program = join(dir, program_name)
 
@@ -354,19 +357,7 @@ class temp_file(object):
         return self.file
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if exists(self.file):
-            _os.remove(self.file)
-
-class temp_dir(object):
-    def __init__(self, suffix=""):
-        self.dir = make_temp_dir(suffix=suffix)
-
-    def __enter__(self):
-        return self.dir
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if exists(self.dir):
-            _shutil.rmtree(self.dir, ignore_errors=True)
+        _remove(self.file)
 
 def unique_id(length=16):
     assert length >= 1
@@ -379,7 +370,9 @@ def unique_id(length=16):
 
 def copy(from_path, to_path):
     notice("Copying '{0}' to '{1}'", from_path, to_path)
+    return _copy(from_path, to_path)
 
+def _copy(from_path, to_path):
     if is_dir(to_path):
         to_path = join(to_path, file_name(from_path))
     else:
@@ -394,11 +387,16 @@ def copy(from_path, to_path):
 
 def move(from_path, to_path):
     notice("Moving '{0}' to '{1}'", from_path, to_path)
+    return _move(from_path, to_path)
 
+def _move(from_path, to_path):
     if is_dir(to_path):
         to_path = join(to_path, file_name(from_path))
     else:
-        make_dir(parent_dir(to_path))
+        parent_path = parent_dir(to_path)
+
+        if parent_path:
+            _make_dir(parent_path)
 
     _shutil.move(from_path, to_path)
 
@@ -418,7 +416,9 @@ def rename(path, expr, replacement):
 
 def remove(path):
     notice("Removing '{0}'", path)
+    return _remove(path)
 
+def _remove(path):
     if not exists(path):
         return
 
@@ -486,6 +486,10 @@ def string_replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
 def make_dir(dir):
+    notice("Making directory '{}'", dir)
+    return _make_dir(dir)
+
+def _make_dir(dir):
     if not exists(dir):
         _os.makedirs(dir)
 
@@ -494,7 +498,9 @@ def make_dir(dir):
 # Returns the current working directory so you can change it back
 def change_dir(dir):
     notice("Changing directory to '{0}'", dir)
+    return _change_dir(dir)
 
+def _change_dir(dir):
     cwd = current_dir()
     _os.chdir(dir)
     return cwd
@@ -520,11 +526,23 @@ class working_dir(object):
         self.prev_dir = None
 
     def __enter__(self):
-        self.prev_dir = change_dir(self.dir)
+        if self.dir is None or self.dir == ".":
+            return
+
+        if not exists(self.dir):
+            _make_dir(self.dir)
+
+        self.prev_dir = _change_dir(self.dir)
+
+        notice("Using working directory '{0}'", self.dir)
+
         return self.dir
 
     def __exit__(self, exc_type, exc_value, traceback):
-        change_dir(self.prev_dir)
+        if self.dir is None or self.dir == ".":
+            return
+
+        _change_dir(self.prev_dir)
 
 class temp_working_dir(working_dir):
     def __init__(self):
@@ -532,9 +550,7 @@ class temp_working_dir(working_dir):
 
     def __exit__(self, exc_type, exc_value, traceback):
         super(temp_working_dir, self).__exit__(exc_type, exc_value, traceback)
-
-        if exists(self.dir):
-            _shutil.rmtree(self.dir, ignore_errors=True)
+        _remove(self.dir)
 
 class working_env(object):
     def __init__(self, **env_vars):
@@ -739,7 +755,7 @@ def wait_for_process(proc):
             eprint(read(proc.temp_output_file), end="")
 
     if proc.temp_output_file is not None:
-        _os.remove(proc.temp_output_file)
+        _remove(proc.temp_output_file)
 
     return proc.returncode
 
@@ -770,7 +786,7 @@ def make_archive(input_dir, output_dir, archive_stem):
     assert is_dir(output_dir), output_dir
     assert _is_string(archive_stem), archive_stem
 
-    with temp_dir() as dir:
+    with temp_working_dir() as dir:
         temp_input_dir = join(dir, archive_stem)
 
         copy(input_dir, temp_input_dir)
@@ -784,11 +800,9 @@ def make_archive(input_dir, output_dir, archive_stem):
 
     return output_file
 
-def extract_archive(archive_file, output_dir):
+def extract_archive(archive_file, output_dir=None):
     assert is_file(archive_file), archive_file
-    assert is_dir(output_dir), output_dir
-
-    make_dir(output_dir)
+    assert output_dir is None or is_dir(output_dir), output_dir
 
     archive_file = absolute_path(archive_file)
 
@@ -804,7 +818,7 @@ def rename_archive(archive_file, new_archive_stem):
     if name_stem(archive_file) == new_archive_stem:
         return archive_file
 
-    with temp_dir() as dir:
+    with temp_working_dir() as dir:
         extract_archive(archive_file, dir)
 
         input_name = list_dir(dir)[0]
