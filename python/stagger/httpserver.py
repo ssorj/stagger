@@ -116,6 +116,8 @@ class _AsgiHandler:
 
         response = await self.render(request)
 
+        assert response is not None
+
         if server_etag is not None:
             response.headers["ETag"] = f'"{server_etag}"'
 
