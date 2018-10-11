@@ -35,7 +35,7 @@ import time as _time
 import traceback as _traceback
 
 class Command(object):
-    def __init__(self, home=None, name=None):
+    def __init__(self, home=None, name=None, standard_args=True):
         self.home = home
         self.name = name
 
@@ -44,12 +44,13 @@ class Command(object):
 
         self._args = None
 
-        self.add_argument("--quiet", action="store_true",
-                          help="Print no logging to the console")
-        self.add_argument("--verbose", action="store_true",
-                          help="Print detailed logging to the console")
-        self.add_argument("--init-only", action="store_true",
-                          help=_argparse.SUPPRESS)
+        if standard_args:
+            self.add_argument("--quiet", action="store_true",
+                              help="Print no logging to the console")
+            self.add_argument("--verbose", action="store_true",
+                              help="Print detailed logging to the console")
+            self.add_argument("--init-only", action="store_true",
+                              help=_argparse.SUPPRESS)
 
         if self.name is None:
             self.name = self._parser.prog

@@ -48,7 +48,7 @@ clean:
 
 .PHONY: build
 build: ${BIN_TARGETS} build/prefix.txt
-	python3 -m transom --quiet render --site-url "" --force static build/static
+	python3 -m transom render --quiet --site-url "" --force static build/static
 	ln -snf ../python build/python
 
 .PHONY: install
