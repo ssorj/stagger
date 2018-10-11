@@ -12,10 +12,9 @@ particular source code repository.
 A repo is identified by an arbitrary ID.  I recommend using a name
 that matches the referenced repository.
 
-<pre>
-<b>GET /api/repos/&lt;repo-id&gt;</b>
-<b>PUT /api/repos/&lt;repo-id&gt;</b>
+#### Repo fields
 
+<pre>
 {
     "tags": {
         "&lt;tag-id&gt;": { /* Tag fields */ },
@@ -25,18 +24,21 @@ that matches the referenced repository.
 }
 </pre>
 
+#### Repo operations
+
 <pre>
-<b>GET /api/repos</b>
+<b>GET /api/repos/&lt;repo-id&gt;</b> -&gt; { /* Repo fields */ }
+<b>PUT /api/repos/&lt;repo-id&gt;</b> &lt;- { /* Repo fields */ }
+<b>DELETE /api/repos/&lt;repo-id&gt;</b>
+<b>HEAD /api/repos/&lt;repo-id&gt;</b>
+
+<b>GET /api/repos</b> -&gt;
 
 {
     "&lt;repo-id&gt;": { /* Repo fields */ },
     "&lt;repo-id&gt;": { /* Repo fields */ },
     "&lt;repo-id&gt;": { /* Repo fields */ }
 }
-</pre>
-
-<pre>
-<b>DELETE /api/repos/&lt;repo-id&gt;</b>
 </pre>
 
 ## Build tags
@@ -51,10 +53,9 @@ to qualify it.  I recommend IDs of the form
 
 A tag contains a set of named artifacts.
 
-<pre>
-<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
-<b>PUT /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
+#### Tag fields
 
+<pre>
 {
     "build_id": "&lt;build-id&gt;",
     "build_url": "&lt;build-url&gt;",
@@ -66,8 +67,15 @@ A tag contains a set of named artifacts.
 }
 </pre>
 
+#### Tag operations
+
 <pre>
-<b>GET /api/repos/&lt;repo-id&gt;/tags</b>
+<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b> -&gt; { /* Tag fields */ }
+<b>PUT /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b> &lt;- { /* Tag fields */ }
+<b>DELETE /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
+<b>HEAD /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
+
+<b>GET /api/repos/&lt;repo-id&gt;/tags</b> ->
 
 {
     "&lt;tag-id&gt;": { /* Tag fields */ },
@@ -76,15 +84,13 @@ A tag contains a set of named artifacts.
 }
 </pre>
 
-<pre>
-<b>DELETE /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
-</pre>
-
 ## Build artifacts
 
 A build artifact holds the details to required to get and install one
 of the build outputs, such as Maven artifacts or container images.
 Different artifact types have different fields.
+
+#### Artifact fields
 
 <pre>
 <b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
@@ -95,8 +101,15 @@ Different artifact types have different fields.
 }
 </pre>
 
+#### Artifact operations
+
 <pre>
-<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts</b>
+<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b> -&gt; { /* Artifact fields */}
+<b>PUT /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b> &lt;- { /* Artifact fields */}
+<b>DELETE /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
+<b>HEAD /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
+
+<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts</b> -&gt;
 
 {
     "&lt;artifact-id&gt;": { /* Artifact fields */ },
