@@ -251,12 +251,16 @@ def read(file):
         return f.read()
 
 def write(file, string):
+    _make_dir(parent_dir(file))
+
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         f.write(string)
 
     return file
 
 def append(file, string):
+    _make_dir(parent_dir(file))
+
     with _codecs.open(file, encoding="utf-8", mode="a") as f:
         f.write(string)
 
@@ -284,12 +288,16 @@ def read_lines(file):
         return f.readlines()
 
 def write_lines(file, lines):
+    _make_dir(parent_dir(file))
+
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
         f.writelines(lines)
 
     return file
 
 def append_lines(file, lines):
+    _make_dir(parent_dir(file))
+
     with _codecs.open(file, encoding="utf-8", mode="a") as f:
         f.writelines(string)
 
@@ -297,6 +305,8 @@ def append_lines(file, lines):
 
 def prepend_lines(file, lines):
     orig_lines = read_lines(file)
+
+    _make_dir(parent_dir(file))
 
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         f.writelines(lines)
@@ -330,6 +340,8 @@ def read_json(file):
         return _json.load(f)
 
 def write_json(file, obj):
+    _make_dir(parent_dir(file))
+
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         return _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
 
@@ -478,6 +490,9 @@ def find_only_one(dir, *patterns):
     if len(paths) == 0:
         return
 
+    if len(paths) != 1:
+        fail("Found multiple files: {0}", ", ".join(paths))
+
     assert len(paths) == 1
 
     return paths[0]
@@ -486,10 +501,13 @@ def string_replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
 def make_dir(dir):
-    notice("Making directory '{}'", dir)
+    notice("Making directory '{0}'", dir)
     return _make_dir(dir)
 
 def _make_dir(dir):
+    if dir == "":
+        return dir
+
     if not exists(dir):
         _os.makedirs(dir)
 
@@ -583,7 +601,7 @@ def call_for_stdout(command, *args, **kwargs):
     kwargs["stdout"] = _subprocess.PIPE
 
     proc = start_process(command, *args, **kwargs)
-    output = proc.communicate()[0]
+    output = proc.communicate()[0].decode("utf-8")
     exit_code = proc.poll()
 
     if exit_code != 0:
@@ -598,7 +616,7 @@ def call_for_stderr(command, *args, **kwargs):
     kwargs["stderr"] = _subprocess.PIPE
 
     proc = start_process(command, *args, **kwargs)
-    output = proc.communicate()[1]
+    output = proc.communicate()[1].decode("utf-8")
     exit_code = proc.poll()
 
     if exit_code != 0:
