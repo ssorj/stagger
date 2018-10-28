@@ -87,6 +87,9 @@ def set_message_threshold(level):
 
 def enable_logging(level=None, output=None):
     if level is not None:
+        if level == "warning":
+            level = "warn"
+
         assert level in _message_levels
 
         global _message_threshold
@@ -345,20 +348,18 @@ def write_json(file, obj):
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         return _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
 
-def make_temp_file(suffix=""):
+def user_temp_dir():
     try:
-        dir = ENV["XDG_RUNTIME_DIR"]
+        return ENV["XDG_RUNTIME_DIR"]
     except KeyError:
-        dir = None
+        return _tempfile.gettempdir()
 
+def make_temp_file(suffix=""):
+    dir = user_temp_dir()
     return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
 
 def make_temp_dir(suffix=""):
-    try:
-        dir = ENV["XDG_RUNTIME_DIR"]
-    except KeyError:
-        dir = None
-
+    dir = user_temp_dir()
     return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
 
 class temp_file(object):
@@ -371,6 +372,7 @@ class temp_file(object):
     def __exit__(self, exc_type, exc_value, traceback):
         _remove(self.file)
 
+# Length in bytes, renders twice as long in hex
 def unique_id(length=16):
     assert length >= 1
     assert length <= 16
@@ -519,8 +521,13 @@ def change_dir(dir):
     return _change_dir(dir)
 
 def _change_dir(dir):
-    cwd = current_dir()
+    try:
+        cwd = current_dir()
+    except FileNotFoundError:
+        cwd = None
+
     _os.chdir(dir)
+
     return cwd
 
 def list_dir(dir, *patterns):
@@ -732,7 +739,11 @@ def start_process(command, *args, **kwargs):
 
     return proc
 
+# Exits without complaint if proc is null
 def terminate_process(proc):
+    if proc is None:
+        return
+
     notice("Terminating {0}", proc)
 
     if proc.poll() is None:
