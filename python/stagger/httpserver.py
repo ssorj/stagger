@@ -159,7 +159,7 @@ class _RepoHandler(_AsgiHandler):
             except DataError as e:
                 return _BadDataResponse(e)
 
-            return Response("")
+            return Response("OK\n")
 
         if request.method == "DELETE":
             try:
@@ -167,7 +167,7 @@ class _RepoHandler(_AsgiHandler):
             except KeyError as e:
                 return _NotFoundResponse(e)
 
-            return Response("")
+            return Response("OK\n")
 
         if request.method == "HEAD":
             return Response("")
@@ -200,7 +200,7 @@ class _TagHandler(_AsgiHandler):
             except DataError as e:
                 return _BadDataResponse(e)
 
-            return Response("")
+            return Response("OK\n")
 
         if request.method == "DELETE":
             try:
@@ -208,7 +208,7 @@ class _TagHandler(_AsgiHandler):
             except KeyError as e:
                 return _NotFoundResponse(e)
 
-            return Response("")
+            return Response("OK\n")
 
         if request.method == "HEAD":
             return Response("")
@@ -242,7 +242,7 @@ class _ArtifactHandler(_AsgiHandler):
             except DataError as e:
                 return _BadDataResponse(e)
 
-            return Response("")
+            return Response("OK\n")
 
         if request.method == "DELETE":
             try:
@@ -250,7 +250,7 @@ class _ArtifactHandler(_AsgiHandler):
             except KeyError as e:
                 return _NotFoundResponse(e)
 
-            return Response("")
+            return Response("OK\n")
 
         if request.method == "HEAD":
             return Response("")

@@ -56,7 +56,7 @@ curl -X PUT $url/api/repos/rh-qpid-jms/tags/master-untested -d @- <<EOF
 }
 EOF
 
-curl -v -X PUT $url/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
+curl -X PUT $url/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
 {
     "build_id": "14",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/dispatch-rpm-master-rhel/detail/central-ci/14/pipeline",
@@ -78,7 +78,8 @@ curl -v -X PUT $url/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
 }
 EOF
 
-curl -v -X PUT $url/api/repos/rh-qpid-proton/tags/master-tested -d @- <<EOF
+# XXX Trouble here if I don't disable 100 continue
+curl -X PUT -H 'Expect:' $url/api/repos/rh-qpid-proton/tags/master-tested -d @- <<EOF
 {
     "build_id": "1198",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/proton-rpm-master-rhel/job/central-ci/1198/",
