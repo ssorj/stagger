@@ -68,25 +68,25 @@ class _Router(Router):
         return super().__call__(scope)
 
 class _NotFoundResponse(PlainTextResponse):
-    def __init__(exception):
+    def __init__(self, exception):
         message = f"Not found: {exception}"
         super().__init__(message, 404)
         print(message)
 
 class _NotModifiedResponse(PlainTextResponse):
-    def __init__(exception):
+    def __init__(self, exception):
         message = "Not modified"
         super().__init__(message, 304)
         print(message)
 
 class _BadJsonResponse(PlainTextResponse):
-    def __init__(exception):
+    def __init__(self, exception):
         message = f"Bad request: Failure decoding JSON: {exception}"
         super().__init__(message, 400)
         print(message)
 
 class _BadDataResponse(PlainTextResponse):
-    def __init__(exception):
+    def __init__(self, exception):
         message = f"Bad request: Illegal data: {exception}"
         super().__init__(message, 400)
         print(message)
@@ -156,7 +156,7 @@ class _RepoHandler(_AsgiHandler):
 
             try:
                 model.put_repo(repo_id, repo_data)
-            except DataError as e:
+            except (DataError, TypeError) as e:
                 return _BadDataResponse(e)
 
             return Response("OK\n")
@@ -197,7 +197,7 @@ class _TagHandler(_AsgiHandler):
 
             try:
                 model.put_tag(repo_id, tag_id, tag_data)
-            except DataError as e:
+            except (DataError, TypeError) as e:
                 return _BadDataResponse(e)
 
             return Response("OK\n")
@@ -239,7 +239,7 @@ class _ArtifactHandler(_AsgiHandler):
 
             try:
                 model.put_artifact(repo_id, tag_id, artifact_id, artifact_data)
-            except DataError as e:
+            except (DataError, TypeError) as e:
                 return _BadDataResponse(e)
 
             return Response("OK\n")
