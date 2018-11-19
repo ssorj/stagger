@@ -34,7 +34,7 @@ _log = _logging.getLogger("httpserver")
 
 __all__ = ["HttpServer"]
 
-class HttpServer:
+class _HttpServer:
     def __init__(self, app, host="0.0.0.0", port=8080):
         self.app = app
         self.host = host

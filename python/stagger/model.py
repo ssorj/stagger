@@ -86,6 +86,7 @@ class Model:
             self.repos[repo_id] = _Repo(self, **repo_data)
             self.revision += 1
 
+        self.app.amqp_server.fire_event(repo_data)
         self._modified.set()
 
     def delete_repo(self, repo_id):
@@ -108,6 +109,7 @@ class Model:
             repo._compute_digest()
             self.revision += 1
 
+        self.app.amqp_server.fire_event(tag_data)
         self._modified.set()
 
     def delete_tag(self, repo_id, tag_id):
@@ -141,6 +143,7 @@ class Model:
             repo._compute_digest()
             self.revision += 1
 
+        self.app.amqp_server.fire_event(artifact_data)
         self._modified.set()
 
     def delete_artifact(self, repo_id, tag_id, artifact_id):
