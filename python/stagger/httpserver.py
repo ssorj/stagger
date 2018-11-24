@@ -178,7 +178,7 @@ class _RepoHandler(_AsgiHandler):
             return _NotFoundResponse(e)
 
     def etag(self, request):
-        return str(request.repo.digest)
+        return str(request.repo._digest)
 
     async def render(self, request):
         return JSONResponse(request.repo.data())
@@ -219,7 +219,7 @@ class _TagHandler(_AsgiHandler):
             return _NotFoundResponse(e)
 
     def etag(self, request):
-        return str(request.tag.digest)
+        return str(request.tag._digest)
 
     async def render(self, request):
         return JSONResponse(request.tag.data())
@@ -261,7 +261,7 @@ class _ArtifactHandler(_AsgiHandler):
             return _NotFoundResponse(e)
 
     def etag(self, request):
-        return str(request.artifact.digest)
+        return str(request.artifact._digest)
 
     async def render(self, request):
         return JSONResponse(request.artifact.data())

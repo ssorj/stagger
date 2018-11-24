@@ -48,8 +48,8 @@ class Model:
             assert "repos" in data, "No repos field in data"
             assert "revision" in data, "No revision field in data"
 
-            for repo_id, repo in data["repos"].items():
-                self.repos[repo_id] = _Repo(self, **repo)
+            for repo_id, repo_data in data["repos"].items():
+                _Repo(self, repo_id, **repo_data)
 
             self.revision = data["revision"]
 
@@ -83,10 +83,11 @@ class Model:
 
     def put_repo(self, repo_id, repo_data):
         with self._lock:
-            self.repos[repo_id] = _Repo(self, **repo_data)
+            repo = _Repo(self, repo_id, **repo_data)
+            self.repos[repo_id] = repo
             self.revision += 1
 
-        self.app.amqp_server.fire_event(repo_data)
+        self.app.amqp_server.fire_repo_update(repo)
         self._modified.set()
 
     def delete_repo(self, repo_id):
@@ -101,15 +102,18 @@ class Model:
             repo = self.repos.get(repo_id)
 
             if repo is None:
-                repo = _Repo(self)
+                repo = _Repo(self, repo_id)
                 self.repos[repo_id] = repo
 
-            repo.tags[tag_id] = _Tag(self, repo, **tag_data)
+            tag = _Tag(self, repo, tag_id, **tag_data)
+            repo.tags[tag_id] = tag
 
             repo._compute_digest()
             self.revision += 1
 
-        self.app.amqp_server.fire_event(tag_data)
+        self.app.amqp_server.fire_tag_update(tag)
+        self.app.amqp_server.fire_repo_update(repo)
+
         self._modified.set()
 
     def delete_tag(self, repo_id, tag_id):
@@ -128,22 +132,26 @@ class Model:
             repo = self.repos.get(repo_id)
 
             if repo is None:
-                repo = _Repo(self)
-                self.repos[repo_id] = repo
+                repo = _Repo(self, repo_id)
+                self.repos[repo_id] = repos
 
             tag = repo.tags.get(tag_id)
 
             if tag is None:
-                tag = _Tag(self, repo)
+                tag = _Tag(self, repo, tag_id)
                 repo.tags[tag_id] = tag
 
-            tag.artifacts[artifact_id] = _Artifact.create(self, tag, **artifact_data)
+            artifact = _Artifact.create(self, tag, artifact_id, **artifact_data)
+            tag.artifacts[artifact_id] = artifact
 
             tag._compute_digest()
             repo._compute_digest()
             self.revision += 1
 
-        self.app.amqp_server.fire_event(artifact_data)
+        self.app.amqp_server.fire_artifact_update(artifact)
+        self.app.amqp_server.fire_tag_update(tag)
+        self.app.amqp_server.fire_repo_update(repo)
+
         self._modified.set()
 
     def delete_artifact(self, repo_id, tag_id, artifact_id):
@@ -163,16 +171,19 @@ class DataError(Exception):
     pass
 
 class _ModelObject:
-    def __init__(self, model):
-        self.model = model
-        self.digest = None
+    def __init__(self, model, id):
+        self._model = model
+        self._id = id
+        self._digest = None
 
     def data(self, exclude=[]):
         fields = dict()
 
         for name, value in vars(self).items():
-            if name not in ("model", "digest") and name not in exclude:
-                fields[name] = value
+            if name.startswith("_") or name == "path" or name in exclude:
+                continue
+
+            fields[name] = value
 
         return fields
 
@@ -180,16 +191,18 @@ class _ModelObject:
         return _json.dumps(self.data(), sort_keys=True)
 
     def _compute_digest(self):
-        self.digest = _binascii.crc32(self.json().encode("utf-8"))
+        self._digest = _binascii.crc32(self.json().encode("utf-8"))
 
 class _Repo(_ModelObject):
-    def __init__(self, model, tags={}):
-        super().__init__(model)
+    def __init__(self, model, id, tags={}):
+        super().__init__(model, id)
 
+        self.path = f"repos/{id}"
         self.tags = dict()
 
         for tag_id, tag_data in tags.items():
-            self.tags[tag_id] = _Tag(self.model, self, **tag_data)
+            tag = _Tag(self._model, self, tag_id, **tag_data)
+            self.tags[tag_id] = tag
 
         self._compute_digest()
 
@@ -203,17 +216,18 @@ class _Repo(_ModelObject):
         return fields
 
 class _Tag(_ModelObject):
-    def __init__(self, model, repo, build_id=None, build_url=None, artifacts={}):
-        super().__init__(model)
+    def __init__(self, model, repo, id, build_id=None, build_url=None, artifacts={}):
+        super().__init__(model, id)
 
         self.repo = repo
+        self.path = f"{repo.path}/tags/{id}"
         self.build_id = build_id
         self.build_url = build_url
-
         self.artifacts = dict()
 
         for artifact_id, artifact_data in artifacts.items():
-            self.artifacts[artifact_id] = _Artifact.create(self.model, self, **artifact_data)
+            artifact = _Artifact.create(self._model, self, artifact_id, **artifact_data)
+            self.artifacts[artifact_id] = artifact
 
         self._compute_digest()
 
@@ -228,27 +242,28 @@ class _Tag(_ModelObject):
 
 class _Artifact(_ModelObject):
     @staticmethod
-    def create(model, tag, **artifact_data):
+    def create(model, tag, id, **artifact_data):
         if "type" not in artifact_data:
             raise DataError("Artifact data has no type field")
 
         cls = _Artifact._subclasses_by_type[artifact_data["type"]]
-        obj = cls(model, tag, **artifact_data)
+        obj = cls(model, tag, id, **artifact_data)
 
         return obj
 
-    def __init__(self, model, tag, type=None):
-        super().__init__(model)
+    def __init__(self, model, tag, id, type=None):
+        super().__init__(model, id)
 
         self.tag = tag
+        self.path = f"{tag.path}/artifacts/{id}"
         self.type = type
 
     def data(self):
         return super().data(exclude=["tag"])
 
 class _ContainerArtifact(_Artifact):
-    def __init__(self, model, tag, type=None, registry_url=None, repository=None, image_id=None):
-        super().__init__(model, tag, type=type)
+    def __init__(self, model, tag, id, type=None, registry_url=None, repository=None, image_id=None):
+        super().__init__(model, tag, id, type=type)
 
         self.registry_url = registry_url
         self.repository = repository
@@ -257,8 +272,8 @@ class _ContainerArtifact(_Artifact):
         self._compute_digest()
 
 class _MavenArtifact(_Artifact):
-    def __init__(self, model, tag, type=None, repository_url=None, group_id=None, artifact_id=None, version=None):
-        super().__init__(model, tag, type=type)
+    def __init__(self, model, tag, id, type=None, repository_url=None, group_id=None, artifact_id=None, version=None):
+        super().__init__(model, tag, id, type=type)
 
         self.repository_url = repository_url
         self.group_id = group_id
@@ -268,16 +283,16 @@ class _MavenArtifact(_Artifact):
         self._compute_digest()
 
 class _FileArtifact(_Artifact):
-    def __init__(self, model, tag, type=None, url=None):
-        super().__init__(model, tag, type=type)
+    def __init__(self, model, tag, id, type=None, url=None):
+        super().__init__(model, tag, id, type=type)
 
         self.url = url
 
         self._compute_digest()
 
 class _RpmArtifact(_Artifact):
-    def __init__(self, model, tag, type=None, repository_url=None, name=None, version=None, release=None):
-        super().__init__(model, tag, type=type)
+    def __init__(self, model, tag, id, type=None, repository_url=None, name=None, version=None, release=None):
+        super().__init__(model, tag, id, type=type)
 
         self.repository_url = repository_url
         self.name = name

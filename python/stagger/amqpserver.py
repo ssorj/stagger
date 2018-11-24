@@ -49,8 +49,23 @@ class _AmqpServer(_threading.Thread):
     def run(self):
         self.container.run()
 
-    def fire_event(self, data):
-        self.events.trigger(_reactor.ApplicationEvent("model_update"))
+    def fire_repo_update(self, repo):
+        _log.info("Firing update for %s", repo)
+
+        event = _reactor.ApplicationEvent("repo_update", subject=repo)
+        self.events.trigger(event)
+
+    def fire_tag_update(self, tag):
+        _log.info("Firing update for %s", tag)
+
+        event = _reactor.ApplicationEvent("tag_update", subject=tag)
+        self.events.trigger(event)
+
+    def fire_artifact_update(self, artifact):
+        _log.info("Firing update for %s", artifact)
+
+        event = _reactor.ApplicationEvent("artifact_update", subject=artifact)
+        self.events.trigger(event)
 
 class _Handler(_handlers.MessagingHandler):
     def __init__(self, server):
@@ -79,16 +94,29 @@ class _Handler(_handlers.MessagingHandler):
     def on_disconnected(self, event):
         _log.info("Disconnected from %s", event.connection)
 
-    def on_link_opened(self, event):
+    def on_link_opening(self, event):
         if event.link.is_sender:
+            assert event.link.remote_source.address is not None
+
+            event.link.source.address = event.link.remote_source.address
+
             self.subscriptions[event.link.name] = event.link
 
     def on_link_closed(self, event):
         if event.link.is_sender:
             del self.subscriptions[event.link.name]
 
-    def on_model_update(self, event):
+    def on_repo_update(self, event):
+        repo = event.subject
+
         for sender in self.subscriptions.values():
-            if sender.credit > 0:
-                print("XXX on model update {}".format(sender.name))
-                sender.send(_proton.Message(sender.name))
+            print(111, sender.source.address)
+            print(222, repo.path)
+            
+            if sender.credit > 0 and sender.source.address == repo.path:
+                _log.info("Sending update for %s", repo.path)
+                sender.send(_proton.Message(repo.json()))
+
+    # def on_tag_update(self, event):
+    #     tag_id, tag = event.subject
+    #     tag_path = 
