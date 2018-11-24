@@ -72,17 +72,16 @@ class _Handler(_handlers.MessagingHandler):
         super(_Handler, self).__init__()
 
         self.server = server
-        self.subscriptions = dict()
+        self.subscriptions = _collections.defaultdict(dict)
 
     def on_start(self, event):
         interface = "{0}:{1}".format(self.server.host, self.server.port)
 
-        self.acceptor = event.container.listen(interface)
+        event.container.listen(interface)
 
         _log.info("Listening for connections on '%s'", interface)
 
     def on_connection_opening(self, event):
-        # XXX I think this should happen automatically
         event.connection.container = event.container.container_id
 
     def on_connection_opened(self, event):
@@ -98,25 +97,36 @@ class _Handler(_handlers.MessagingHandler):
         if event.link.is_sender:
             assert event.link.remote_source.address is not None
 
-            event.link.source.address = event.link.remote_source.address
+            address = event.link.remote_source.address
+            event.link.source.address = address
 
-            self.subscriptions[event.link.name] = event.link
+            self.subscriptions[address][event.link.name] = event.link
 
     def on_link_closed(self, event):
         if event.link.is_sender:
-            del self.subscriptions[event.link.name]
+            address = event.link.source.address
+            del self.subscriptions[address][event.link.name]
 
     def on_repo_update(self, event):
         repo = event.subject
 
-        for sender in self.subscriptions.values():
-            print(111, sender.source.address)
-            print(222, repo.path)
-            
-            if sender.credit > 0 and sender.source.address == repo.path:
-                _log.info("Sending update for %s", repo.path)
+        for sender in self.subscriptions[repo.path].values():
+            if sender.credit > 0:
+                _log.info("Sending update %s", repo)
                 sender.send(_proton.Message(repo.json()))
 
-    # def on_tag_update(self, event):
-    #     tag_id, tag = event.subject
-    #     tag_path = 
+    def on_tag_update(self, event):
+        tag = event.subject
+
+        for sender in self.subscriptions[tag.path].values():
+            if sender.credit > 0:
+                _log.info("Sending update for %s", tag)
+                sender.send(_proton.Message(tag.json()))
+
+    def on_artifact_update(self, event):
+        artifact = event.subject
+
+        for sender in self.subscriptions[artifact.path].values():
+            if sender.credit > 0:
+                _log.info("Sending update for %s", artifact)
+                sender.send(_proton.Message(tag.json()))

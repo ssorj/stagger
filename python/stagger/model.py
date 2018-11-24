@@ -176,6 +176,11 @@ class _ModelObject:
         self._id = id
         self._digest = None
 
+        self.path = None
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.path})"
+
     def data(self, exclude=[]):
         fields = dict()
 
