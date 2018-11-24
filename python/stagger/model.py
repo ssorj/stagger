@@ -180,7 +180,7 @@ class _ModelObject:
         fields = dict()
 
         for name, value in vars(self).items():
-            if name.startswith("_") or name == "path" or name in exclude:
+            if name.startswith("_") or name in exclude:
                 continue
 
             fields[name] = value
@@ -194,11 +194,14 @@ class _ModelObject:
         self._digest = _binascii.crc32(self.json().encode("utf-8"))
 
 class _Repo(_ModelObject):
-    def __init__(self, model, id, tags={}):
+    def __init__(self, model, id, path=None, tags={}):
         super().__init__(model, id)
 
-        self.path = f"repos/{id}"
+        self.path = path
         self.tags = dict()
+
+        if self.path is None:
+            self.path = f"repos/{self._id}"
 
         for tag_id, tag_data in tags.items():
             tag = _Tag(self._model, self, tag_id, **tag_data)
@@ -216,14 +219,18 @@ class _Repo(_ModelObject):
         return fields
 
 class _Tag(_ModelObject):
-    def __init__(self, model, repo, id, build_id=None, build_url=None, artifacts={}):
+    def __init__(self, model, repo, id,
+                 path=None, build_id=None, build_url=None, artifacts={}):
         super().__init__(model, id)
 
         self.repo = repo
-        self.path = f"{repo.path}/tags/{id}"
+        self.path = path
         self.build_id = build_id
         self.build_url = build_url
         self.artifacts = dict()
+
+        if self.path is None:
+            self.path = f"{self.repo.path}/tags/{self._id}"
 
         for artifact_id, artifact_data in artifacts.items():
             artifact = _Artifact.create(self._model, self, artifact_id, **artifact_data)
@@ -246,24 +253,29 @@ class _Artifact(_ModelObject):
         if "type" not in artifact_data:
             raise DataError("Artifact data has no type field")
 
-        cls = _Artifact._subclasses_by_type[artifact_data["type"]]
+        type_ = artifact_data["type"]
+        cls = _Artifact._subclasses_by_type[type_]
         obj = cls(model, tag, id, **artifact_data)
 
         return obj
 
-    def __init__(self, model, tag, id, type=None):
+    def __init__(self, model, type, tag, id, path):
         super().__init__(model, id)
 
         self.tag = tag
-        self.path = f"{tag.path}/artifacts/{id}"
+        self.path = path
         self.type = type
+
+        if self.path is None:
+            self.path = f"{self.tag.path}/artifacts/{self._id}"
 
     def data(self):
         return super().data(exclude=["tag"])
 
 class _ContainerArtifact(_Artifact):
-    def __init__(self, model, tag, id, type=None, registry_url=None, repository=None, image_id=None):
-        super().__init__(model, tag, id, type=type)
+    def __init__(self, model, tag, id,
+                 type=None, path=None, registry_url=None, repository=None, image_id=None):
+        super().__init__(model, type, tag, id, path)
 
         self.registry_url = registry_url
         self.repository = repository
@@ -272,8 +284,10 @@ class _ContainerArtifact(_Artifact):
         self._compute_digest()
 
 class _MavenArtifact(_Artifact):
-    def __init__(self, model, tag, id, type=None, repository_url=None, group_id=None, artifact_id=None, version=None):
-        super().__init__(model, tag, id, type=type)
+    def __init__(self, model, tag, id,
+                 type=None, path=None, repository_url=None, group_id=None, artifact_id=None,
+                 version=None):
+        super().__init__(model, type, tag, id, path)
 
         self.repository_url = repository_url
         self.group_id = group_id
@@ -283,16 +297,18 @@ class _MavenArtifact(_Artifact):
         self._compute_digest()
 
 class _FileArtifact(_Artifact):
-    def __init__(self, model, tag, id, type=None, url=None):
-        super().__init__(model, tag, id, type=type)
+    def __init__(self, model, tag, id, type=None, path=None, url=None):
+        super().__init__(model, type, tag, id, path)
 
         self.url = url
 
         self._compute_digest()
 
 class _RpmArtifact(_Artifact):
-    def __init__(self, model, tag, id, type=None, repository_url=None, name=None, version=None, release=None):
-        super().__init__(model, tag, id, type=type)
+    def __init__(self, model, tag, id,
+                 type=None, path=None, repository_url=None, name=None, version=None,
+                 release=None):
+        super().__init__(model, type, tag, id, path)
 
         self.repository_url = repository_url
         self.name = name
