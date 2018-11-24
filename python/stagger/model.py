@@ -85,6 +85,8 @@ class Model:
         with self._lock:
             repo = _Repo(self, repo_id, **repo_data)
             self.repos[repo_id] = repo
+
+            repo._compute_digest()
             self.revision += 1
 
         self.app.amqp_server.fire_repo_update(repo)
@@ -93,6 +95,7 @@ class Model:
     def delete_repo(self, repo_id):
         with self._lock:
             del self.repos[repo_id]
+
             self.revision += 1
 
         self._modified.set()
@@ -108,6 +111,7 @@ class Model:
             tag = _Tag(self, repo, tag_id, **tag_data)
             repo.tags[tag_id] = tag
 
+            tag._compute_digest()
             repo._compute_digest()
             self.revision += 1
 
@@ -144,6 +148,7 @@ class Model:
             artifact = _Artifact.create(self, tag, artifact_id, **artifact_data)
             tag.artifacts[artifact_id] = artifact
 
+            artifact._compute_digest()
             tag._compute_digest()
             repo._compute_digest()
             self.revision += 1
@@ -212,8 +217,6 @@ class _Repo(_ModelObject):
             tag = _Tag(self._model, self, tag_id, **tag_data)
             self.tags[tag_id] = tag
 
-        self._compute_digest()
-
     def data(self):
         fields = super().data(exclude=["tags"])
         fields["tags"] = tags = dict()
@@ -258,18 +261,18 @@ class _Artifact(_ModelObject):
         if "type" not in artifact_data:
             raise DataError("Artifact data has no type field")
 
-        type_ = artifact_data["type"]
-        cls = _Artifact._subclasses_by_type[type_]
+        type = artifact_data["type"]
+        cls = _Artifact._subclasses_by_type[type]
         obj = cls(model, tag, id, **artifact_data)
 
         return obj
 
-    def __init__(self, model, type, tag, id, path):
+    def __init__(self, model, tag, id, type=None, path=None):
         super().__init__(model, id)
 
         self.tag = tag
-        self.path = path
         self.type = type
+        self.path = path
 
         if self.path is None:
             self.path = f"{self.tag.path}/artifacts/{self._id}"
@@ -280,47 +283,39 @@ class _Artifact(_ModelObject):
 class _ContainerArtifact(_Artifact):
     def __init__(self, model, tag, id,
                  type=None, path=None, registry_url=None, repository=None, image_id=None):
-        super().__init__(model, type, tag, id, path)
+        super().__init__(model, tag, id, type=type, path=path)
 
         self.registry_url = registry_url
         self.repository = repository
         self.image_id = image_id
 
-        self._compute_digest()
-
 class _MavenArtifact(_Artifact):
     def __init__(self, model, tag, id,
                  type=None, path=None, repository_url=None, group_id=None, artifact_id=None,
                  version=None):
-        super().__init__(model, type, tag, id, path)
+        super().__init__(model, tag, id, type=type, path=path)
 
         self.repository_url = repository_url
         self.group_id = group_id
         self.artifact_id = artifact_id
         self.version = version
 
-        self._compute_digest()
-
 class _FileArtifact(_Artifact):
     def __init__(self, model, tag, id, type=None, path=None, url=None):
-        super().__init__(model, type, tag, id, path)
+        super().__init__(model, tag, id, type=type, path=path)
 
         self.url = url
-
-        self._compute_digest()
 
 class _RpmArtifact(_Artifact):
     def __init__(self, model, tag, id,
                  type=None, path=None, repository_url=None, name=None, version=None,
                  release=None):
-        super().__init__(model, type, tag, id, path)
+        super().__init__(model, tag, id, type=type, path=path)
 
         self.repository_url = repository_url
         self.name = name
         self.version = version
         self.release = release
-
-        self._compute_digest()
 
 _Artifact._subclasses_by_type = {
     "container": _ContainerArtifact,
