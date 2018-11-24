@@ -91,7 +91,10 @@ class _Handler(_handlers.MessagingHandler):
 
         _log.info("Sending updates for %s", obj)
 
-        message = _proton.Message(obj.json())
+        message = _proton.Message()
+        message.content_type = "application/json"
+        message.inferred = True
+        message.body = obj.json().encode("utf-8")
 
         for sender in self.subscriptions[obj.path].values():
             if sender.credit > 0:
