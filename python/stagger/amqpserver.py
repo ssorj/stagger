@@ -84,15 +84,6 @@ class _Handler(_handlers.MessagingHandler):
     def on_connection_opening(self, event):
         event.connection.container = event.container.container_id
 
-    def on_connection_opened(self, event):
-        _log.info("Opened connection from %s", event.connection)
-
-    def on_connection_closed(self, event):
-        _log.info("Closed connection from %s", event.connection)
-
-    def on_disconnected(self, event):
-        _log.info("Disconnected from %s", event.connection)
-
     def on_link_opening(self, event):
         if event.link.is_sender:
             assert event.link.remote_source.address is not None
@@ -102,7 +93,7 @@ class _Handler(_handlers.MessagingHandler):
 
             self.subscriptions[address][event.link.name] = event.link
 
-    def on_link_closed(self, event):
+    def on_link_closing(self, event):
         if event.link.is_sender:
             address = event.link.source.address
             del self.subscriptions[address][event.link.name]
