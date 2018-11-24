@@ -49,22 +49,10 @@ class _AmqpServer(_threading.Thread):
     def run(self):
         self.container.run()
 
-    def fire_repo_update(self, repo):
-        _log.info("Firing update for %s", repo)
+    def fire_object_update(self, obj):
+        _log.info("Firing update for %s", obj)
 
-        event = _reactor.ApplicationEvent("repo_update", subject=repo)
-        self.events.trigger(event)
-
-    def fire_tag_update(self, tag):
-        _log.info("Firing update for %s", tag)
-
-        event = _reactor.ApplicationEvent("tag_update", subject=tag)
-        self.events.trigger(event)
-
-    def fire_artifact_update(self, artifact):
-        _log.info("Firing update for %s", artifact)
-
-        event = _reactor.ApplicationEvent("artifact_update", subject=artifact)
+        event = _reactor.ApplicationEvent("object_update", subject=obj)
         self.events.trigger(event)
 
 class _Handler(_handlers.MessagingHandler):
@@ -98,26 +86,13 @@ class _Handler(_handlers.MessagingHandler):
             address = event.link.source.address
             del self.subscriptions[address][event.link.name]
 
-    def on_repo_update(self, event):
-        repo = event.subject
+    def on_object_update(self, event):
+        obj = event.subject
 
-        for sender in self.subscriptions[repo.path].values():
+        _log.info("Sending updates for %s", obj)
+
+        message = _proton.Message(obj.json())
+
+        for sender in self.subscriptions[obj.path].values():
             if sender.credit > 0:
-                _log.info("Sending update %s", repo)
-                sender.send(_proton.Message(repo.json()))
-
-    def on_tag_update(self, event):
-        tag = event.subject
-
-        for sender in self.subscriptions[tag.path].values():
-            if sender.credit > 0:
-                _log.info("Sending update for %s", tag)
-                sender.send(_proton.Message(tag.json()))
-
-    def on_artifact_update(self, event):
-        artifact = event.subject
-
-        for sender in self.subscriptions[artifact.path].values():
-            if sender.credit > 0:
-                _log.info("Sending update for %s", artifact)
-                sender.send(_proton.Message(tag.json()))
+                sender.send(message)

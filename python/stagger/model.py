@@ -89,7 +89,7 @@ class Model:
             repo._compute_digest()
             self.revision += 1
 
-        self.app.amqp_server.fire_repo_update(repo)
+        self.app.amqp_server.fire_object_update(repo)
         self._modified.set()
 
     def delete_repo(self, repo_id):
@@ -115,8 +115,8 @@ class Model:
             repo._compute_digest()
             self.revision += 1
 
-        self.app.amqp_server.fire_tag_update(tag)
-        self.app.amqp_server.fire_repo_update(repo)
+        self.app.amqp_server.fire_object_update(tag)
+        self.app.amqp_server.fire_object_update(repo)
 
         self._modified.set()
 
@@ -153,9 +153,9 @@ class Model:
             repo._compute_digest()
             self.revision += 1
 
-        self.app.amqp_server.fire_artifact_update(artifact)
-        self.app.amqp_server.fire_tag_update(tag)
-        self.app.amqp_server.fire_repo_update(repo)
+        self.app.amqp_server.fire_object_update(artifact)
+        self.app.amqp_server.fire_object_update(tag)
+        self.app.amqp_server.fire_object_update(repo)
 
         self._modified.set()
 
