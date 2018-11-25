@@ -50,6 +50,7 @@ class Application:
 
         self.model.load()
         self.model.start()
+
         self.amqp_server.start()
         self.http_server.run()
 

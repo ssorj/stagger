@@ -43,7 +43,6 @@ class _AmqpServer(_threading.Thread):
         self.events = _reactor.EventInjector()
         self.container.selectable(self.events)
 
-        # XXX Replace this with orderly stop
         self.daemon = True
 
     def run(self):

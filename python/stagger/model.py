@@ -244,8 +244,6 @@ class _Tag(_ModelObject):
             artifact = _Artifact.create(self._model, self, artifact_id, **artifact_data)
             self.artifacts[artifact_id] = artifact
 
-        self._compute_digest()
-
     def data(self):
         fields = super().data(exclude=["repo", "artifacts"])
         fields["artifacts"] = artifacts = dict()
