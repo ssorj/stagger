@@ -7,11 +7,10 @@ installable version of your software.
 ## Build repos
 
 A build repo represents a stream of builds from a particular source.
-This will usually be the output of a CI job.
+This is usually the output of a CI job.
 
 A repo is identified by an arbitrary ID.  I recommend using a name
-based on that of its CI job, with any additional qualifiers at the
-end.
+based on that of its CI job or source repository.
 
 A build repo contains a set of named tags.
 
@@ -178,4 +177,16 @@ I recommend IDs corresponding to the RPM package name, as in
     "version": "&lt;package-version&gt;"
     "release": "&lt;package-release&gt;",
 }
+</pre>
+
+## AMQP events
+
+In addition to HTTP endpoints, Stagger publishes any updates of repos,
+tags, or artifacts as AMQP messages.  They are published under the
+following addresses:
+
+<pre>
+repos/&lt;repo-id&gt; -> { /* Repo fields */ }
+repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt; -> { /* Tag fields */ }
+repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt; -> { /* Artifact fields */ }
 </pre>

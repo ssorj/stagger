@@ -205,7 +205,7 @@ class _ModelObject:
         self._digest = _binascii.crc32(self.json().encode("utf-8"))
 
 class _Repo(_ModelObject):
-    def __init__(self, model, id, path=None, tags={}):
+    def __init__(self, model, id, path=None, job_url=None, tags={}):
         super().__init__(model, id, None, path)
 
         if self.path is None:
@@ -332,8 +332,3 @@ class _SaveThread(_threading.Thread):
                 _traceback.print_exc()
             finally:
                 self.model._modified.clear()
-
-if __name__ == "__main__":
-    model = Model(None, "misc/data.json")
-    model.load()
-    print(model.json())
