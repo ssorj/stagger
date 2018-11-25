@@ -108,7 +108,7 @@ class Model:
                 repo = _Repo(self, repo_id)
                 self.repos[repo_id] = repo
 
-            tag = _Tag(self, repo, tag_id, **tag_data)
+            tag = _Tag(self, tag_id, repo, **tag_data)
             repo.tags[tag_id] = tag
 
             tag._compute_digest()
@@ -142,10 +142,10 @@ class Model:
             tag = repo.tags.get(tag_id)
 
             if tag is None:
-                tag = _Tag(self, repo, tag_id)
+                tag = _Tag(self, tag_id, repo)
                 repo.tags[tag_id] = tag
 
-            artifact = _Artifact.create(self, tag, artifact_id, **artifact_data)
+            artifact = _Artifact.create(self, artifact_id, tag, **artifact_data)
             tag.artifacts[artifact_id] = artifact
 
             artifact._compute_digest()
@@ -176,12 +176,13 @@ class DataError(Exception):
     pass
 
 class _ModelObject:
-    def __init__(self, model, id):
+    def __init__(self, model, id, parent, path):
         self._model = model
         self._id = id
+        self._parent = parent
         self._digest = None
 
-        self.path = None
+        self.path = path
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.path})"
@@ -205,16 +206,15 @@ class _ModelObject:
 
 class _Repo(_ModelObject):
     def __init__(self, model, id, path=None, tags={}):
-        super().__init__(model, id)
-
-        self.path = path
-        self.tags = dict()
+        super().__init__(model, id, None, path)
 
         if self.path is None:
             self.path = f"repos/{self._id}"
 
+        self.tags = dict()
+
         for tag_id, tag_data in tags.items():
-            tag = _Tag(self._model, self, tag_id, **tag_data)
+            tag = _Tag(self._model, tag_id, self, **tag_data)
             self.tags[tag_id] = tag
 
     def data(self):
@@ -227,25 +227,23 @@ class _Repo(_ModelObject):
         return fields
 
 class _Tag(_ModelObject):
-    def __init__(self, model, repo, id,
+    def __init__(self, model, id, parent,
                  path=None, build_id=None, build_url=None, artifacts={}):
-        super().__init__(model, id)
+        super().__init__(model, id, parent, path)
 
-        self.repo = repo
-        self.path = path
+        if self.path is None:
+            self.path = f"{self._parent.path}/tags/{self._id}"
+
         self.build_id = build_id
         self.build_url = build_url
         self.artifacts = dict()
 
-        if self.path is None:
-            self.path = f"{self.repo.path}/tags/{self._id}"
-
         for artifact_id, artifact_data in artifacts.items():
-            artifact = _Artifact.create(self._model, self, artifact_id, **artifact_data)
+            artifact = _Artifact.create(self._model, artifact_id, self, **artifact_data)
             self.artifacts[artifact_id] = artifact
 
     def data(self):
-        fields = super().data(exclude=["repo", "artifacts"])
+        fields = super().data(exclude=["artifacts"])
         fields["artifacts"] = artifacts = dict()
 
         for artifact_id, artifact in self.artifacts.items():
@@ -255,43 +253,38 @@ class _Tag(_ModelObject):
 
 class _Artifact(_ModelObject):
     @staticmethod
-    def create(model, tag, id, **artifact_data):
+    def create(model, id, parent, **artifact_data):
         if "type" not in artifact_data:
             raise DataError("Artifact data has no type field")
 
         type = artifact_data["type"]
         cls = _Artifact._subclasses_by_type[type]
-        obj = cls(model, tag, id, **artifact_data)
+        obj = cls(model, id, parent, **artifact_data)
 
         return obj
 
-    def __init__(self, model, tag, id, type=None, path=None):
-        super().__init__(model, id)
-
-        self.tag = tag
-        self.type = type
-        self.path = path
+    def __init__(self, model, id, parent, path, type):
+        super().__init__(model, id, parent, path)
 
         if self.path is None:
-            self.path = f"{self.tag.path}/artifacts/{self._id}"
+            self.path = f"{self._parent.path}/artifacts/{self._id}"
 
-    def data(self):
-        return super().data(exclude=["tag"])
+        self.type = type
 
 class _ContainerArtifact(_Artifact):
-    def __init__(self, model, tag, id,
-                 type=None, path=None, registry_url=None, repository=None, image_id=None):
-        super().__init__(model, tag, id, type=type, path=path)
+    def __init__(self, model, id, parent,
+                 path=None, type=None, registry_url=None, repository=None, image_id=None):
+        super().__init__(model, id, parent, path, type)
 
         self.registry_url = registry_url
         self.repository = repository
         self.image_id = image_id
 
 class _MavenArtifact(_Artifact):
-    def __init__(self, model, tag, id,
-                 type=None, path=None, repository_url=None, group_id=None, artifact_id=None,
+    def __init__(self, model, id, parent,
+                 path=None, type=None, repository_url=None, group_id=None, artifact_id=None,
                  version=None):
-        super().__init__(model, tag, id, type=type, path=path)
+        super().__init__(model, id, parent, path, type)
 
         self.repository_url = repository_url
         self.group_id = group_id
@@ -299,16 +292,16 @@ class _MavenArtifact(_Artifact):
         self.version = version
 
 class _FileArtifact(_Artifact):
-    def __init__(self, model, tag, id, type=None, path=None, url=None):
-        super().__init__(model, tag, id, type=type, path=path)
+    def __init__(self, model, id, parent, path=None, type=None, url=None):
+        super().__init__(model, id, parent, path, type)
 
         self.url = url
 
 class _RpmArtifact(_Artifact):
-    def __init__(self, model, tag, id,
-                 type=None, path=None, repository_url=None, name=None, version=None,
+    def __init__(self, model, id, parent,
+                 path=None, type=None, repository_url=None, name=None, version=None,
                  release=None):
-        super().__init__(model, tag, id, type=type, path=path)
+        super().__init__(model, id, parent, path, type)
 
         self.repository_url = repository_url
         self.name = name
