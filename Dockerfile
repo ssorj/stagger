@@ -20,18 +20,16 @@
 FROM fedora
 MAINTAINER Justin Ross <jross@apache.org>
 
-RUN dnf -qy --setopt deltarpm=0 install gcc make python3-devel redhat-rpm-config && dnf -q clean all
-
-RUN pip3 install starlette uvicorn
+RUN dnf -qy --setopt deltarpm=0 install gcc make python3-devel python3-qpid-proton redhat-rpm-config \
+ && dnf -q clean all
 
 COPY . /home/app
-RUN useradd --user-group --no-create-home app
-RUN chown -R app:app /home/app
-
+RUN useradd --user-group --no-create-home app && chown -R app:app /home/app
 USER app
 WORKDIR /home/app/
-RUN make build
 
-WORKDIR /home/app/build
-ENV PYTHONPATH python
-CMD ["python3", "python/app.py"]
+RUN pip3 install --user starlette uvicorn aiofiles
+RUN make clean build install
+
+ENV PATH=/home/app/.local/bin:$PATH
+CMD ["stagger"]

@@ -7,4 +7,4 @@
 
 ## Unfiled
 
-    pip3 install --upgrade --user starlette aiofiles
+    pip3 install --upgrade --user starlette uvicorn aiofiles
