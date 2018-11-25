@@ -56,6 +56,10 @@ class Model:
     def start(self):
         self._save_thread.start()
 
+    def mark_modified(self):
+        self.revision += 1
+        self._modified.set()
+
     def save(self):
         with self._lock:
             temp = f"{self.data_file}.temp"
@@ -87,18 +91,15 @@ class Model:
             self.repos[repo_id] = repo
 
             repo._compute_digest()
-            self.revision += 1
+
+            self.mark_modified()
 
         self.app.amqp_server.fire_object_update(repo)
-        self._modified.set()
 
     def delete_repo(self, repo_id):
         with self._lock:
             del self.repos[repo_id]
-
-            self.revision += 1
-
-        self._modified.set()
+            self.mark_modified()
 
     def put_tag(self, repo_id, tag_id, tag_data):
         with self._lock:
@@ -113,12 +114,11 @@ class Model:
 
             tag._compute_digest()
             repo._compute_digest()
-            self.revision += 1
+
+            self.mark_modified()
 
         self.app.amqp_server.fire_object_update(tag)
         self.app.amqp_server.fire_object_update(repo)
-
-        self._modified.set()
 
     def delete_tag(self, repo_id, tag_id):
         with self._lock:
@@ -127,9 +127,8 @@ class Model:
             del repo.tags[tag_id]
 
             repo._compute_digest()
-            self.revision += 1
 
-        self._modified.set()
+            self.mark_modified()
 
     def put_artifact(self, repo_id, tag_id, artifact_id, artifact_data):
         with self._lock:
@@ -151,13 +150,12 @@ class Model:
             artifact._compute_digest()
             tag._compute_digest()
             repo._compute_digest()
-            self.revision += 1
+
+            self.mark_modified()
 
         self.app.amqp_server.fire_object_update(artifact)
         self.app.amqp_server.fire_object_update(tag)
         self.app.amqp_server.fire_object_update(repo)
-
-        self._modified.set()
 
     def delete_artifact(self, repo_id, tag_id, artifact_id):
         with self._lock:
@@ -168,9 +166,8 @@ class Model:
 
             tag._compute_digest()
             repo._compute_digest()
-            self.revision += 1
 
-        self._modified.set()
+            self.mark_modified()
 
 class DataError(Exception):
     pass
