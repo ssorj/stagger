@@ -17,7 +17,6 @@
 # under the License.
 #
 
-import binascii as _binascii
 import json as _json
 import json.decoder as _json_decoder
 import logging as _logging
@@ -41,16 +40,16 @@ class _HttpServer:
         self.port = port
 
         routes = [
-            Path("/api/data",
-                 app=_DataHandler, methods=["GET", "HEAD"]),
-            Path("/api/repos/{repo_id}",
-                 app=_RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Path("/api/repos/{repo_id}/tags/{tag_id}",
-                 app=_TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Path("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}",
-                 app=_ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Path("/", StaticFile(path=_os.path.join(self.app.home, "static", "index.html"))),
-            PathPrefix("", StaticFiles(directory=_os.path.join(self.app.home, "static"))),
+            Route("/api/data",
+                  endpoint=_DataHandler, methods=["GET", "HEAD"]),
+            Route("/api/repos/{repo_id}",
+                  endpoint=_RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+            Route("/api/repos/{repo_id}/tags/{tag_id}",
+                  endpoint=_TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+            Route("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}",
+                  endpoint=_ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+            Route("/", endpoint=_IndexHandler, methods=["GET", "HEAD"]),
+            Mount("", app=StaticFiles(directory=_os.path.join(self.app.home, "static"))),
         ]
 
         self._router = _Router(self.app, routes)
@@ -124,7 +123,8 @@ class _AsgiHandler:
         await response(receive, send)
 
     async def process(self, request):
-        pass
+        if request.method == "HEAD":
+            return Response("")
 
     def etag(self, request):
         pass
@@ -132,11 +132,16 @@ class _AsgiHandler:
     async def render(self, request):
         pass
 
-class _DataHandler(_AsgiHandler):
-    async def process(self, request):
-        if request.method == "HEAD":
-            return Response("")
+class _IndexHandler(_AsgiHandler):
+    _etag = id(1) # XXX
 
+    def etag(self, request):
+        return self._etag
+
+    async def render(self, request):
+        return FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
+
+class _DataHandler(_AsgiHandler):
     def etag(self, request):
         return str(request.app.model.revision)
 
@@ -146,7 +151,7 @@ class _DataHandler(_AsgiHandler):
 class _RepoHandler(_AsgiHandler):
     async def process(self, request):
         model = request.app.model
-        repo_id = request["kwargs"]["repo_id"]
+        repo_id = request.path_params["repo_id"]
 
         if request.method == "PUT":
             try:
@@ -186,8 +191,8 @@ class _RepoHandler(_AsgiHandler):
 class _TagHandler(_AsgiHandler):
     async def process(self, request):
         model = request.app.model
-        repo_id = request["kwargs"]["repo_id"]
-        tag_id = request["kwargs"]["tag_id"]
+        repo_id = request.path_params["repo_id"]
+        tag_id = request.path_params["tag_id"]
 
         if request.method == "PUT":
             try:
@@ -227,9 +232,9 @@ class _TagHandler(_AsgiHandler):
 class _ArtifactHandler(_AsgiHandler):
     async def process(self, request):
         model = request.app.model
-        repo_id = request["kwargs"]["repo_id"]
-        tag_id = request["kwargs"]["tag_id"]
-        artifact_id = request["kwargs"]["artifact_id"]
+        repo_id = request.path_params["repo_id"]
+        tag_id = request.path_params["tag_id"]
+        artifact_id = request.path_params["artifact_id"]
 
         if request.method == "PUT":
             try:
