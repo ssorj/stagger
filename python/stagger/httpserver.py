@@ -21,6 +21,7 @@ import json as _json
 import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
+import uuid as _uuid
 import uvicorn as _uvicorn
 
 from .model import *
@@ -39,6 +40,8 @@ class _HttpServer:
         self.host = host
         self.port = port
 
+        static_dir = _os.path.join(self.app.home, "static")
+
         routes = [
             Route("/api/data",
                   endpoint=_DataHandler, methods=["GET", "HEAD"]),
@@ -49,7 +52,7 @@ class _HttpServer:
             Route("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}",
                   endpoint=_ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Route("/", endpoint=_IndexHandler, methods=["GET", "HEAD"]),
-            Mount("", app=StaticFiles(directory=_os.path.join(self.app.home, "static"))),
+            Mount("", app=StaticFiles(directory=static_dir)),
         ]
 
         self._router = _Router(self.app, routes)
@@ -133,7 +136,7 @@ class _AsgiHandler:
         pass
 
 class _IndexHandler(_AsgiHandler):
-    _etag = id(1) # XXX
+    _etag = str(_uuid.uuid4())
 
     def etag(self, request):
         return self._etag
