@@ -4,18 +4,22 @@ A service for tagging software builds and describing the resulting
 build artifacts.  A Stagger tag binds a well-known name to a concrete,
 installable version of your software.
 
-## Source repos
+## Build repos
 
-A source repo is a named container for tags corresponding to a
-particular source code repository.
+A build repo represents a stream of builds from a particular source.
+This will usually be the output of a CI job.
 
 A repo is identified by an arbitrary ID.  I recommend using a name
-that matches the referenced repository.
+based on that of its CI job, with any additional qualifiers at the
+end.
+
+A build repo contains a set of named tags.
 
 #### Repo fields
 
 <pre>
 {
+    "job_url": "&lt;job-url&gt;",
     "tags": {
         "&lt;tag-id&gt;": { /* Tag fields */ },
         "&lt;tag-id&gt;": { /* Tag fields */ },
@@ -123,9 +127,8 @@ conventions for these below.
 
 ### Arbitrary files
 
-I recommend IDs of the form
-<code>&lt;file-name&gt;-&lt;file-type&gt;</code> (but without any
-unstable version part), as in <code>amq-broker-zip</code>.
+I recommend IDs corresponding to the file name, but without any
+unstable version part, as in <code>amq-broker.zip</code>.
 
 <pre>
 {
@@ -136,9 +139,7 @@ unstable version part), as in <code>amq-broker-zip</code>.
 
 ### Container images
 
-I recommend IDs of the form
-<code>&lt;repository-name&gt;-container</code>, as in
-<code>amq-interconnect-container</code>.
+I recommend IDs corresponding to the container image ID.
 
 <pre>
 {
@@ -151,9 +152,8 @@ I recommend IDs of the form
 
 ### Maven artifacts
 
-I recommend IDs of the form
-<code>&lt;maven-artifact-id&gt;-maven</code>, as in
-<code>qpid-jms-client-maven</code>.
+I recommend IDs corresponding to the Maven artifact ID, as in
+<code>qpid-jms-client</code>.
 
 <pre>
 {
@@ -167,9 +167,8 @@ I recommend IDs of the form
 
 ### RPM packages
 
-I recommend IDs of the form
-<code>&lt;package-name&gt;-&lt;dist&gt;-rpm</code>, as in
-<code>qpid-proton-cpp-devel-el7-rpm</code>.
+I recommend IDs corresponding to the RPM package name, as in
+<code>qpid-proton-cpp-devel</code>.
 
 <pre>
 {
