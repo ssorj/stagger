@@ -492,15 +492,35 @@ def find_only_one(dir, *patterns):
     if len(paths) == 0:
         return
 
-    if len(paths) != 1:
+    if len(paths) > 1:
         fail("Found multiple files: {0}", ", ".join(paths))
 
     assert len(paths) == 1
 
     return paths[0]
 
+def find_exactly_one(dir, *patterns):
+    path = find_only_one(dir, *patterns)
+
+    if path is None:
+        fail("Found no matching files")
+
+    return path
+
 def string_replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
+
+def configure_file(input_file, output_file, **kwargs):
+    notice("Configuring '{0}' for output '{1}'", input_file, output_file)
+
+    content = read(input_file)
+
+    for name, value in kwargs.items():
+        content = content.replace("@{0}@".format(name), value)
+
+    write(output_file, content)
+
+    _shutil.copymode(input_file, output_file)
 
 def make_dir(dir):
     notice("Making directory '{0}'", dir)
@@ -557,15 +577,17 @@ class working_dir(object):
         if not exists(self.dir):
             _make_dir(self.dir)
 
-        self.prev_dir = _change_dir(self.dir)
+        notice("Entering working directory '{0}'", absolute_path(self.dir))
 
-        notice("Using working directory '{0}'", self.dir)
+        self.prev_dir = _change_dir(self.dir)
 
         return self.dir
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.dir is None or self.dir == ".":
             return
+
+        notice("Returning to directory '{0}'", absolute_path(self.prev_dir))
 
         _change_dir(self.prev_dir)
 
@@ -702,6 +724,8 @@ def start_process(command, *args, **kwargs):
         command_string = _command_string(command, [])
     else:
         raise Exception()
+
+    command_string = command_string.replace("\n", "\\n")
 
     notice("Calling '{0}'", command_string)
 
