@@ -93,8 +93,6 @@ class Model:
 
             repo.mark_modified()
 
-        self.app.amqp_server.fire_object_update(repo)
-
     def delete_repo(self, repo_id):
         with self._lock:
             del self.repos[repo_id]
@@ -113,9 +111,6 @@ class Model:
 
             branch.mark_modified()
 
-        self.app.amqp_server.fire_object_update(branch)
-        self.app.amqp_server.fire_object_update(repo)
-
     def delete_branch(self, repo_id, branch_id):
         with self._lock:
             repo = self.repos[repo_id]
@@ -123,8 +118,6 @@ class Model:
             del repo.branches[branch_id]
 
             repo.mark_modified()
-
-        # XXX object update when child is removed?
 
     def put_tag(self, repo_id, branch_id, tag_id, tag_data):
         with self._lock:
@@ -144,10 +137,6 @@ class Model:
             branch.tags[tag_id] = tag
 
             tag.mark_modified()
-
-        self.app.amqp_server.fire_object_update(tag)
-        self.app.amqp_server.fire_object_update(branch)
-        self.app.amqp_server.fire_object_update(repo)
 
     def delete_tag(self, repo_id, branch_id, tag_id):
         with self._lock:
@@ -183,11 +172,6 @@ class Model:
 
             artifact.mark_modified()
 
-        self.app.amqp_server.fire_object_update(artifact)
-        self.app.amqp_server.fire_object_update(tag)
-        self.app.amqp_server.fire_object_update(branch)
-        self.app.amqp_server.fire_object_update(repo)
-
     def delete_artifact(self, repo_id, branch_id, tag_id, artifact_id):
         with self._lock:
             repo = self.repos[repo_id]
@@ -202,8 +186,6 @@ class DataError(Exception):
     pass
 
 class _ModelObject:
-    _child_vars = []
-
     def __init__(self, model, id, parent, path):
         self._model = model
         self._id = id
@@ -249,14 +231,15 @@ class _ModelObject:
         return _json.dumps(self.data(), sort_keys=True)
 
     def mark_modified(self):
-        self._compute_digest()
+        self._mark_modified()
         self._model.mark_modified()
 
-    def _compute_digest(self):
+    def _mark_modified(self):
         self._digest = _binascii.crc32(self.json().encode("utf-8"))
+        self._model.app.amqp_server.fire_object_update(self)
 
         if self._parent is not None:
-            self._parent._compute_digest()
+            self._parent._mark_modified()
 
 class _Repo(_ModelObject):
     _path_template = "repos/{id}"
@@ -302,6 +285,7 @@ class _Tag(_ModelObject):
 
 class _Artifact(_ModelObject):
     _path_template = "{parent_path}/artifacts/{id}"
+    _child_vars = []
 
     @staticmethod
     def create(model, id, parent, **artifact_data):
