@@ -49,7 +49,8 @@ class Model:
             assert "revision" in data, "No revision field in data"
 
             for repo_id, repo_data in data["repos"].items():
-                _Repo(self, repo_id, **repo_data)
+                repo = _Repo(self, repo_id, **repo_data)
+                self.repos[repo_id] = repo
 
             self.revision = data["revision"]
 
