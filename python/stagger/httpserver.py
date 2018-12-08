@@ -47,9 +47,11 @@ class _HttpServer:
                   endpoint=_DataHandler, methods=["GET", "HEAD"]),
             Route("/api/repos/{repo_id}",
                   endpoint=_RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Route("/api/repos/{repo_id}/tags/{tag_id}",
+            Route("/api/repos/{repo_id}/branches/{branch_id}",
+                  endpoint=_BranchHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+            Route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}",
                   endpoint=_TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Route("/api/repos/{repo_id}/tags/{tag_id}/artifacts/{artifact_id}",
+            Route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}/artifacts/{artifact_id}",
                   endpoint=_ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Route("/", endpoint=_IndexHandler, methods=["GET", "HEAD"]),
             Mount("", app=StaticFiles(directory=static_dir)),
@@ -151,7 +153,14 @@ class _DataHandler(_AsgiHandler):
     async def render(self, request):
         return JSONResponse(request.app.model.data())
 
-class _RepoHandler(_AsgiHandler):
+class _ObjectHandler(_AsgiHandler):
+    def etag(self, request):
+        return str(request.object._digest)
+
+    async def render(self, request):
+        return JSONResponse(request.object.data())
+
+class _RepoHandler(_ObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
@@ -181,30 +190,24 @@ class _RepoHandler(_AsgiHandler):
             return Response("")
 
         try:
-            request.repo = model.repos[repo_id]
+            request.object = model.repos[repo_id]
         except KeyError as e:
             return _NotFoundResponse(e)
 
-    def etag(self, request):
-        return str(request.repo._digest)
-
-    async def render(self, request):
-        return JSONResponse(request.repo.data())
-
-class _TagHandler(_AsgiHandler):
+class _BranchHandler(_ObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
-        tag_id = request.path_params["tag_id"]
+        branch_id = request.path_params["branch_id"]
 
         if request.method == "PUT":
             try:
-                tag_data = await request.json()
+                branch_data = await request.json()
             except _json_decoder.JSONDecodeError as e:
                 return _BadJsonResponse(e)
 
             try:
-                model.put_tag(repo_id, tag_id, tag_data)
+                model.put_branch(repo_id, branch_id, branch_data)
             except (DataError, TypeError) as e:
                 return _BadDataResponse(e)
 
@@ -212,7 +215,7 @@ class _TagHandler(_AsgiHandler):
 
         if request.method == "DELETE":
             try:
-                model.delete_tag(repo_id, tag_id)
+                model.delete_branch(repo_id, branch_id)
             except KeyError as e:
                 return _NotFoundResponse(e)
 
@@ -222,20 +225,51 @@ class _TagHandler(_AsgiHandler):
             return Response("")
 
         try:
-            request.tag = model.repos[repo_id].tags[tag_id]
+            request.object = model.repos[repo_id].branches[branch_id]
         except KeyError as e:
             return _NotFoundResponse(e)
 
-    def etag(self, request):
-        return str(request.tag._digest)
-
-    async def render(self, request):
-        return JSONResponse(request.tag.data())
-
-class _ArtifactHandler(_AsgiHandler):
+class _TagHandler(_ObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
+        branch_id = request.path_params["branch_id"]
+        tag_id = request.path_params["tag_id"]
+
+        if request.method == "PUT":
+            try:
+                tag_data = await request.json()
+            except _json_decoder.JSONDecodeError as e:
+                return _BadJsonResponse(e)
+
+            try:
+                model.put_tag(repo_id, branch_id, tag_id, tag_data)
+            except (DataError, TypeError) as e:
+                return _BadDataResponse(e)
+
+            return Response("OK\n")
+
+        if request.method == "DELETE":
+            try:
+                model.delete_tag(repo_id, branch_id, tag_id)
+            except KeyError as e:
+                return _NotFoundResponse(e)
+
+            return Response("OK\n")
+
+        if request.method == "HEAD":
+            return Response("")
+
+        try:
+            request.object = model.repos[repo_id].branches[branch_id].tags[tag_id]
+        except KeyError as e:
+            return _NotFoundResponse(e)
+
+class _ArtifactHandler(_ObjectHandler):
+    async def process(self, request):
+        model = request.app.model
+        repo_id = request.path_params["repo_id"]
+        branch_id = request.path_params["branch_id"]
         tag_id = request.path_params["tag_id"]
         artifact_id = request.path_params["artifact_id"]
 
@@ -246,7 +280,7 @@ class _ArtifactHandler(_AsgiHandler):
                 return _BadJsonResponse(e)
 
             try:
-                model.put_artifact(repo_id, tag_id, artifact_id, artifact_data)
+                model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
             except (DataError, TypeError) as e:
                 return _BadDataResponse(e)
 
@@ -254,7 +288,7 @@ class _ArtifactHandler(_AsgiHandler):
 
         if request.method == "DELETE":
             try:
-                model.delete_artifact(repo_id, tag_id, artifact_id)
+                model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
             except KeyError as e:
                 return _NotFoundResponse(e)
 
@@ -264,12 +298,6 @@ class _ArtifactHandler(_AsgiHandler):
             return Response("")
 
         try:
-            request.artifact = model.repos[repo_id].tags[tag_id].artifacts[artifact_id]
+            request.object = model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]
         except KeyError as e:
             return _NotFoundResponse(e)
-
-    def etag(self, request):
-        return str(request.artifact._digest)
-
-    async def render(self, request):
-        return JSONResponse(request.artifact.data())

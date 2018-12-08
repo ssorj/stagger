@@ -73,48 +73,52 @@ class Stagger {
             gesso.createLink(repoElem, repoDataUrl,
                              {"text": "Data", "class": "repo-data"});
 
-            for (let tagId of Object.keys(repo["tags"])) {
-                let tag = repo["tags"][tagId];
-                let tagDataUrl = `/pretty.html?url=/api/repos/${repoId}/tags/${tagId}`
-                let tagElem = gesso.createDiv(repoElem, "tag");
+            for (let branchId of Object.keys(repo["branches"])) {
+                let branch = repo["branches"][branchId];
+                
+                for (let tagId of Object.keys(branch["tags"])) {
+                    let tag = branch["tags"][tagId];
+                    let tagDataUrl = `/pretty.html?url=/api/repos/${repoId}/branches/${branchId}/tags/${tagId}`
+                    let tagElem = gesso.createDiv(repoElem, "tag");
 
-                gesso.createDiv(tagElem, "tag-id", tagId);
-                gesso.createLink(tagElem, tagDataUrl,
-                                 {"text": "Data", "class": "tag-data"});
-                gesso.createLink(tagElem, tag["build_url"],
-                                 {"text": tag["build_id"], "class": "tag-build"});
+                    gesso.createDiv(tagElem, "tag-id", `${branchId}/${tagId}`);
+                    gesso.createLink(tagElem, tagDataUrl,
+                                     {"text": "Data", "class": "tag-data"});
+                    gesso.createLink(tagElem, tag["build_url"],
+                                     {"text": tag["build_id"], "class": "tag-build"});
 
-                for (let artifactId of Object.keys(tag["artifacts"])) {
-                    let artifact = tag["artifacts"][artifactId];
-                    let artifactDataUrl = `/pretty.html?url=/api/repos/${repoId}/tags/${tagId}/artifacts/${artifactId}`
-                    let artifactElem = gesso.createDiv(tagElem, "artifact");
+                    for (let artifactId of Object.keys(tag["artifacts"])) {
+                        let artifact = tag["artifacts"][artifactId];
+                        let artifactDataUrl = `/pretty.html?url=/api/repos/${repoId}/branches/${branchId}/tags/${tagId}/artifacts/${artifactId}`
+                        let artifactElem = gesso.createDiv(tagElem, "artifact");
 
-                    let artifactUrl = artifactDataUrl;
-                    let coords;
+                        let artifactUrl = artifactDataUrl;
+                        let coords;
 
-                    switch (artifact["type"]) {
-                    case "container":
-                        coords = `${artifact["repository"]}/${artifact["image_id"]}`;
-                        artifactUrl = artifact["registry_url"];
-                        break;
-                    case "file":
-                        coords = artifact["url"];
-                        artifactUrl = artifact["url"];
-                    case "maven":
-                        coords = `${artifact["group_id"]}:${artifact["artifact_id"]}:${artifact["version"]}`;
-                        artifactUrl = artifact["repository_url"];
-                        break;
-                    case "rpm":
-                        coords = `${artifact["name"]}-${artifact["version"]}-${artifact["release"]}`;
-                        artifactUrl = artifact["repository_url"];
-                        break;
+                        switch (artifact["type"]) {
+                        case "container":
+                            coords = `${artifact["repository"]}/${artifact["image_id"]}`;
+                            artifactUrl = artifact["registry_url"];
+                            break;
+                        case "file":
+                            coords = artifact["url"];
+                            artifactUrl = artifact["url"];
+                        case "maven":
+                            coords = `${artifact["group_id"]}:${artifact["artifact_id"]}:${artifact["version"]}`;
+                            artifactUrl = artifact["repository_url"];
+                            break;
+                        case "rpm":
+                            coords = `${artifact["name"]}-${artifact["version"]}-${artifact["release"]}`;
+                            artifactUrl = artifact["repository_url"];
+                            break;
+                        }
+
+                        gesso.createDiv(artifactElem, "artifact-id", artifactId);
+                        gesso.createLink(artifactElem, artifactDataUrl,
+                                         {"text": "Data", "class": "artifact-data"});
+                        gesso.createLink(artifactElem, artifactUrl,
+                                         {"text": coords, "class": "artifact-coords"});
                     }
-
-                    gesso.createDiv(artifactElem, "artifact-id", artifactId);
-                    gesso.createLink(artifactElem, artifactDataUrl,
-                                     {"text": "Data", "class": "artifact-data"});
-                    gesso.createLink(artifactElem, artifactUrl,
-                                     {"text": coords, "class": "artifact-coords"});
                 }
             }
         }

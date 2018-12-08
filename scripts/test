@@ -21,6 +21,10 @@
 from plano import *
 
 repo_1 = {
+    "branches": {}
+}
+
+branch_1 = {
     "tags": {}
 }
 
@@ -79,21 +83,25 @@ with working_dir("build"):
 try:
     sleep(0.2)
 
-    put(f"http://localhost:{http_port}/api/repos/rh-qpid-jms", repo_1)
-    put(f"http://localhost:{http_port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested", tag_1)
-    put(f"http://localhost:{http_port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip", artifact_1)
+    put(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist", repo_1)
+    put(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq", branch_1)
+    put(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq/tags/tested", tag_1)
+    put(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq/tags/tested/artifacts/qpid-jms-zip", artifact_1)
 
-    get(f"http://localhost:{http_port}/api/repos/rh-qpid-jms")
-    get(f"http://localhost:{http_port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
-    get(f"http://localhost:{http_port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
+    get(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist")
+    get(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq")
+    get(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq/tags/tested")
+    get(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq/tags/tested/artifacts/qpid-jms-zip")
 
-    head(f"http://localhost:{http_port}/api/repos/rh-qpid-jms")
-    head(f"http://localhost:{http_port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
-    head(f"http://localhost:{http_port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
+    head(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist")
+    head(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq")
+    head(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq/tags/tested")
+    head(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq/tags/tested/artifacts/qpid-jms-zip")
 
-    delete(f"http://localhost:{http_port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested/artifacts/qpid-jms-zip")
-    delete(f"http://localhost:{http_port}/api/repos/rh-qpid-jms/tags/0.34.0-amq-tested")
-    delete(f"http://localhost:{http_port}/api/repos/rh-qpid-jms")
+    delete(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq/tags/tested/artifacts/qpid-jms-zip")
+    delete(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq/tags/tested")
+    delete(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist/branches/0.34.x-amq")
+    delete(f"http://localhost:{http_port}/api/repos/rh-qpid-jms-dist")
 
     call("scripts/load-demo-data http://localhost:{}", http_port)
 

@@ -8,7 +8,7 @@ fi
 
 set -ex
 
-curl -X PUT $url/api/repos/rh-pooled-jms/tags/master-tested -d @- <<EOF
+curl -X PUT $url/api/repos/rh-pooled-jms-dist/branches/master/tags/tested -d @- <<EOF
 {
     "build_id": "196",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/pooled-jms-maven-master-rhel/detail/central-ci/196/pipeline",
@@ -24,7 +24,7 @@ curl -X PUT $url/api/repos/rh-pooled-jms/tags/master-tested -d @- <<EOF
 }
 EOF
 
-curl -X PUT $url/api/repos/rh-pooled-jms/tags/master-untested -d @- <<EOF
+curl -X PUT $url/api/repos/rh-pooled-jms-dist/branches/master/tags/untested -d @- <<EOF
 {
     "build_id": "197",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/pooled-jms-maven-master-rhel/detail/central-ci/197/pipeline",
@@ -40,7 +40,7 @@ curl -X PUT $url/api/repos/rh-pooled-jms/tags/master-untested -d @- <<EOF
 }
 EOF
 
-curl -X PUT $url/api/repos/rh-qpid-jms/tags/master-untested -d @- <<EOF
+curl -X PUT $url/api/repos/rh-qpid-jms-dist/branches/master/tags/untested -d @- <<EOF
 {
     "build_id": "877",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/jms-maven-master-rhel/detail/central-ci/877/pipeline",
@@ -56,54 +56,48 @@ curl -X PUT $url/api/repos/rh-qpid-jms/tags/master-untested -d @- <<EOF
 }
 EOF
 
-curl -X PUT $url/api/repos/rh-qpid-dispatch/tags/master-untested -d @- <<EOF
+curl -X PUT $url/api/repos/rh-qpid-dispatch-dist-el7/branches/master/tags/untested -d @- <<EOF
 {
     "build_id": "14",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/blue/organizations/jenkins/dispatch-rpm-master-rhel/detail/central-ci/14/pipeline",
     "artifacts": {
-        "qpid-dispatch-router-el7-rpm": {
+        "qpid-dispatch-router": {
             "type": "rpm",
             "repository_url": "http://rhm.usersys.redhat.com/yum/packages/qpid-dispatch/el7/20180816.483b929/x86_64/",
             "name": "qpid-dispatch-router",
             "version": "1.4.0",
-            "release": "20180816.483b929.el7"
-        },
-        "amq-interconnect-container": {
-            "type": "container",
-            "registry_url": "https://registry.access.redhat.com",
-            "repository": "amq-interconnect-1",
-            "image_id": "8e996ec51141"
+            "release": "14.483b929c.el7"
         }
     }
 }
 EOF
 
 # XXX Trouble here if I don't disable 100 continue
-curl -X PUT -H 'Expect:' $url/api/repos/rh-qpid-proton/tags/master-tested -d @- <<EOF
+curl -X PUT -H 'Expect:' $url/api/repos/rh-qpid-proton-dist-el7/branches/master/tags/tested -d @- <<EOF
 {
     "build_id": "1198",
     "build_url": "https://amq-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/proton-rpm-master-rhel/job/central-ci/1198/",
     "artifacts": {
-        "python-qpid-proton-el7-rpm": {
+        "python-qpid-proton": {
             "type": "rpm",
-            "repository_url": "http://rhm.usersys.redhat.com/yum/packages/qpid-proton/el7/20180816.803a47e/x86_64/",
+            "repository_url": "http://files.example.net/rh-qpid-proton-dist-el7/master/tested/1198.803a47e1",
             "name": "python-qpid-proton",
             "version": "0.25.0",
-            "release": "20180816.803a47e.el7"
+            "release": "1198.803a47e1.el7"
         },
-        "qpid-proton-c-devel-el7-rpm": {
+        "qpid-proton-c-devel": {
             "type": "rpm",
-            "repository_url": "http://rhm.usersys.redhat.com/yum/packages/qpid-proton/el7/20180816.803a47e/x86_64/",
+            "repository_url": "http://files.example.net/rh-qpid-proton-dist-el7/master/tested/1198.803a47e1",
             "name": "qpid-proton-c-devel",
             "version": "0.25.0",
-            "release": "20180816.803a47e.el7"
+            "release": "1198.803a47e1.el7"
         },
-        "qpid-proton-cpp-devel-el7-rpm": {
+        "qpid-proton-cpp-devel": {
             "type": "rpm",
-            "repository_url": "http://rhm.usersys.redhat.com/yum/packages/qpid-proton/el7/20180816.803a47e/x86_64/",
+            "repository_url": "http://files.example.net/rh-qpid-proton-dist-el7/master/tested/1198.803a47e1",
             "name": "qpid-proton-cpp-devel",
             "version": "0.25.0",
-            "release": "20180816.803a47e.el7"
+            "release": "1198.803a47e1.el7"
         }
     }
 }
