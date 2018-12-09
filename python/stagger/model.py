@@ -356,9 +356,9 @@ class _SaveThread(_threading.Thread):
         while self.model._modified.wait():
             try:
                 self.model.save()
-            except keyboardinterrupt:
+            except KeyboardInterrupt:
                 raise
-            except exception:
+            except Exception:
                 _traceback.print_exc()
             finally:
                 self.model._modified.clear()

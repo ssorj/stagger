@@ -44,7 +44,7 @@ class _HttpServer:
 
         routes = [
             Route("/api/data",
-                  endpoint=_DataHandler, methods=["GET", "HEAD"]),
+                  endpoint=_ModelHandler, methods=["GET", "HEAD"]),
             Route("/api/repos/{repo_id}",
                   endpoint=_RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             Route("/api/repos/{repo_id}/branches/{branch_id}",
@@ -103,7 +103,10 @@ class _AsgiHandler:
         request = Request(self.scope, receive)
         request.app = request["app"]
 
-        response = await self.process(request)
+        try:
+            response = await self.process(request)
+        except _json_decoder.JSONDecodeError as e:
+            return _BadJsonResponse(e)
 
         if response is not None:
             await response(receive, send)
@@ -146,30 +149,27 @@ class _IndexHandler(_AsgiHandler):
     async def render(self, request):
         return FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
 
-class _DataHandler(_AsgiHandler):
+class _ModelHandler(_AsgiHandler):
     def etag(self, request):
         return str(request.app.model.revision)
 
     async def render(self, request):
         return JSONResponse(request.app.model.data())
 
-class _ObjectHandler(_AsgiHandler):
+class _ModelObjectHandler(_AsgiHandler):
     def etag(self, request):
         return str(request.object._digest)
 
     async def render(self, request):
         return JSONResponse(request.object.data())
 
-class _RepoHandler(_ObjectHandler):
+class _RepoHandler(_ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
 
         if request.method == "PUT":
-            try:
-                repo_data = await request.json()
-            except _json_decoder.JSONDecodeError as e:
-                return _BadJsonResponse(e)
+            repo_data = await request.json()
 
             try:
                 model.put_repo(repo_id, repo_data)
@@ -194,17 +194,14 @@ class _RepoHandler(_ObjectHandler):
         except KeyError as e:
             return _NotFoundResponse(e)
 
-class _BranchHandler(_ObjectHandler):
+class _BranchHandler(_ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
         branch_id = request.path_params["branch_id"]
 
         if request.method == "PUT":
-            try:
-                branch_data = await request.json()
-            except _json_decoder.JSONDecodeError as e:
-                return _BadJsonResponse(e)
+            branch_data = await request.json()
 
             try:
                 model.put_branch(repo_id, branch_id, branch_data)
@@ -229,7 +226,7 @@ class _BranchHandler(_ObjectHandler):
         except KeyError as e:
             return _NotFoundResponse(e)
 
-class _TagHandler(_ObjectHandler):
+class _TagHandler(_ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
@@ -237,10 +234,7 @@ class _TagHandler(_ObjectHandler):
         tag_id = request.path_params["tag_id"]
 
         if request.method == "PUT":
-            try:
-                tag_data = await request.json()
-            except _json_decoder.JSONDecodeError as e:
-                return _BadJsonResponse(e)
+            tag_data = await request.json()
 
             try:
                 model.put_tag(repo_id, branch_id, tag_id, tag_data)
@@ -265,7 +259,7 @@ class _TagHandler(_ObjectHandler):
         except KeyError as e:
             return _NotFoundResponse(e)
 
-class _ArtifactHandler(_ObjectHandler):
+class _ArtifactHandler(_ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
@@ -274,10 +268,7 @@ class _ArtifactHandler(_ObjectHandler):
         artifact_id = request.path_params["artifact_id"]
 
         if request.method == "PUT":
-            try:
-                artifact_data = await request.json()
-            except _json_decoder.JSONDecodeError as e:
-                return _BadJsonResponse(e)
+            artifact_data = await request.json()
 
             try:
                 model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
