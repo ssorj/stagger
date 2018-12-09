@@ -186,24 +186,21 @@ class DataError(Exception):
     pass
 
 class _ModelObject:
-    def __init__(self, model, id, parent, path):
+    def __init__(self, model, id, parent):
         self._model = model
         self._id = id
         self._parent = parent
         self._digest = None
 
-        self.path = path
-
-        if self.path is None:
-            parent_path = None
-
-            if self._parent is not None:
-                parent_path = self._parent.path
-
-            self.path = self._path_template.format(parent_path=parent_path, id=self._id)
-
     def __repr__(self):
         return f"{self.__class__.__name__}({self.path})"
+
+    @property
+    def path(self):
+        if self._parent is None:
+            return self._path_template.format(id=self._id)
+        else:
+            return self._path_template.format(parent_path=self._parent.path, id=self._id)
 
     def data(self):
         fields = dict()
@@ -245,8 +242,8 @@ class _Repo(_ModelObject):
     _path_template = "repos/{id}"
     _child_vars = ["branches"]
 
-    def __init__(self, model, id, path=None, branches={}):
-        super().__init__(model, id, None, path)
+    def __init__(self, model, id, branches={}):
+        super().__init__(model, id, None)
 
         self.branches = dict()
 
@@ -258,9 +255,8 @@ class _Branch(_ModelObject):
     _path_template = "{parent_path}/branches/{id}"
     _child_vars = ["tags"]
 
-    def __init__(self, model, id, parent,
-                 path=None, job_url=None, tags={}):
-        super().__init__(model, id, parent, path)
+    def __init__(self, model, id, parent, job_url=None, tags={}):
+        super().__init__(model, id, parent)
 
         self.job_url = job_url
         self.tags = dict()
@@ -274,8 +270,8 @@ class _Tag(_ModelObject):
     _child_vars = ["artifacts"]
 
     def __init__(self, model, id, parent,
-                 path=None, build_id=None, build_url=None, commit_id=None, artifacts={}):
-        super().__init__(model, id, parent, path)
+                 build_id=None, build_url=None, commit_id=None, artifacts={}):
+        super().__init__(model, id, parent)
 
         self.build_id = build_id
         self.build_url = build_url
@@ -301,15 +297,15 @@ class _Artifact(_ModelObject):
 
         return obj
 
-    def __init__(self, model, id, parent, path, type):
-        super().__init__(model, id, parent, path)
+    def __init__(self, model, id, parent, type):
+        super().__init__(model, id, parent)
 
         self.type = type
 
 class _ContainerArtifact(_Artifact):
     def __init__(self, model, id, parent,
-                 path=None, type=None, registry_url=None, repository=None, image_id=None):
-        super().__init__(model, id, parent, path, type)
+                 type=None, registry_url=None, repository=None, image_id=None):
+        super().__init__(model, id, parent, type)
 
         self.registry_url = registry_url
         self.repository = repository
@@ -317,9 +313,9 @@ class _ContainerArtifact(_Artifact):
 
 class _MavenArtifact(_Artifact):
     def __init__(self, model, id, parent,
-                 path=None, type=None, repository_url=None, group_id=None, artifact_id=None,
+                 type=None, repository_url=None, group_id=None, artifact_id=None,
                  version=None):
-        super().__init__(model, id, parent, path, type)
+        super().__init__(model, id, parent, type)
 
         self.repository_url = repository_url
         self.group_id = group_id
@@ -327,16 +323,15 @@ class _MavenArtifact(_Artifact):
         self.version = version
 
 class _FileArtifact(_Artifact):
-    def __init__(self, model, id, parent, path=None, type=None, url=None):
-        super().__init__(model, id, parent, path, type)
+    def __init__(self, model, id, parent, type=None, url=None):
+        super().__init__(model, id, parent, type)
 
         self.url = url
 
 class _RpmArtifact(_Artifact):
     def __init__(self, model, id, parent,
-                 path=None, type=None, repository_url=None, name=None, version=None,
-                 release=None):
-        super().__init__(model, id, parent, path, type)
+                 type=None, repository_url=None, name=None, version=None, release=None):
+        super().__init__(model, id, parent, type)
 
         self.repository_url = repository_url
         self.name = name
