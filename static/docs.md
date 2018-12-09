@@ -6,23 +6,18 @@ installable version of your software.
 
 ## Build repos
 
-A build repo represents a stream of builds from a particular source.
-This is usually the output of a CI job.
-
-A repo is identified by an arbitrary ID.  I recommend using a name
-based on that of its CI job or source repository.
-
-A build repo contains a set of named tags.
+A build repo collects all the builds for a particular source
+repository.  It contains a set of named branches.
 
 #### Repo fields
 
 <pre>
 {
-    "job_url": "&lt;job-url&gt;",
-    "tags": {
-        "&lt;tag-id&gt;": { /* Tag fields */ },
-        "&lt;tag-id&gt;": { /* Tag fields */ },
-        "&lt;tag-id&gt;": { /* Tag fields */ }
+    "source_url": "&lt;source-url&gt;",
+    "branches": {
+        "&lt;branch-id&gt;": { /* Branch fields */ },
+        "&lt;branch-id&gt;": { /* Branch fields */ },
+        "&lt;branch-id&gt;": { /* Branch fields */ }
     }
 }
 </pre>
@@ -44,17 +39,47 @@ A build repo contains a set of named tags.
 }
 </pre>
 
+## Build branches
+
+A build branch represents a stream of builds from a source code
+branch.  This is usually the output of a CI job.  A branch contains a
+set of named tags.
+
+#### Branch fields
+
+<pre>
+{
+    "job_url": "&lt;job-url&gt;",
+    "tags": {
+        "&lt;tag-id&gt;": { /* Tag fields */ },
+        "&lt;tag-id&gt;": { /* Tag fields */ },
+        "&lt;tag-id&gt;": { /* Tag fields */ }
+    }
+}
+</pre>
+
+#### Branch operations
+
+<pre>
+<b>GET /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;</b> -&gt; { /* Branch fields */ }
+<b>PUT /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;</b> &lt;- { /* Branch fields */ }
+<b>DELETE /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;</b>
+<b>HEAD /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;</b>
+
+<b>GET /api/repos/&lt;repo-id&gt;/branches</b> ->
+
+{
+    "&lt;branch-id&gt;": { /* Branch fields */ },
+    "&lt;branch-id&gt;": { /* Branch fields */ },
+    "&lt;branch-id&gt;": { /* Branch fields */ }
+}
+</pre>
+
 ## Build tags
 
 A build tag is a stable name representing a build with a particular
-status, such as "untested", "tested", or "released".
-
-A tag is identified by an arbitrary ID.  The tag ID is meant for use
-in the context of multiple repos and branches, so it is important
-to qualify it.  I recommend IDs of the form
-<code>&lt;source-repo-branch&gt;-&lt;status&gt;</code>.
-
-A tag contains a set of named artifacts.
+status, such as "untested", "tested", or "released".  A tag contains a
+set of named artifacts.
 
 #### Tag fields
 
@@ -62,6 +87,7 @@ A tag contains a set of named artifacts.
 {
     "build_id": "&lt;build-id&gt;",
     "build_url": "&lt;build-url&gt;",
+    "commit_id": "&lt;commit-id&gt;",
     "artifacts": {
         "&lt;artifact-id&gt;": { /* Artifact fields */ },
         "&lt;artifact-id&gt;": { /* Artifact fields */ },
@@ -73,10 +99,10 @@ A tag contains a set of named artifacts.
 #### Tag operations
 
 <pre>
-<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b> -&gt; { /* Tag fields */ }
-<b>PUT /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b> &lt;- { /* Tag fields */ }
-<b>DELETE /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
-<b>HEAD /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;</b>
+<b>GET /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;</b> -&gt; { /* Tag fields */ }
+<b>PUT /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;</b> &lt;- { /* Tag fields */ }
+<b>DELETE /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;</b>
+<b>HEAD /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;</b>
 
 <b>GET /api/repos/&lt;repo-id&gt;/tags</b> ->
 
@@ -96,7 +122,7 @@ Different artifact types have different fields.
 #### Artifact fields
 
 <pre>
-<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
+<b>GET /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
 
 {
     "type": "&lt;artifact-type&gt;",
@@ -107,12 +133,12 @@ Different artifact types have different fields.
 #### Artifact operations
 
 <pre>
-<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b> -&gt; { /* Artifact fields */}
-<b>PUT /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b> &lt;- { /* Artifact fields */}
-<b>DELETE /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
-<b>HEAD /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
+<b>GET /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b> -&gt; { /* Artifact fields */}
+<b>PUT /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b> &lt;- { /* Artifact fields */}
+<b>DELETE /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
+<b>HEAD /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt;</b>
 
-<b>GET /api/repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts</b> -&gt;
+<b>GET /api/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts</b> -&gt;
 
 {
     "&lt;artifact-id&gt;": { /* Artifact fields */ },
@@ -182,11 +208,12 @@ I recommend IDs corresponding to the RPM package name, as in
 ## AMQP events
 
 In addition to HTTP endpoints, Stagger publishes any updates of repos,
-tags, or artifacts as AMQP messages.  They are published under the
-following addresses:
+branches, tags, or artifacts as AMQP messages.  They are published
+under the following addresses:
 
 <pre>
 repos/&lt;repo-id&gt; -> { /* Repo fields */ }
-repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt; -> { /* Tag fields */ }
-repos/&lt;repo-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt; -> { /* Artifact fields */ }
+repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt; -> { /* Branch fields */ }
+repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt; -> { /* Tag fields */ }
+repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt; -> { /* Artifact fields */ }
 </pre>

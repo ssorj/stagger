@@ -258,9 +258,11 @@ class _Branch(_ModelObject):
     _path_template = "{parent_path}/branches/{id}"
     _child_vars = ["tags"]
 
-    def __init__(self, model, id, parent, path=None, tags={}):
+    def __init__(self, model, id, parent,
+                 path=None, job_url=None, tags={}):
         super().__init__(model, id, parent, path)
 
+        self.job_url = job_url
         self.tags = dict()
 
         for tag_id, tag_data in tags.items():
@@ -272,11 +274,12 @@ class _Tag(_ModelObject):
     _child_vars = ["artifacts"]
 
     def __init__(self, model, id, parent,
-                 path=None, build_id=None, build_url=None, artifacts={}):
+                 path=None, build_id=None, build_url=None, commit_id=None, artifacts={}):
         super().__init__(model, id, parent, path)
 
         self.build_id = build_id
         self.build_url = build_url
+        self.commit_id = commit_id
         self.artifacts = dict()
 
         for artifact_id, artifact_data in artifacts.items():
