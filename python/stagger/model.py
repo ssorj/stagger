@@ -197,10 +197,7 @@ class _ModelObject:
 
     @property
     def path(self):
-        if self._parent is None:
-            return self._path_template.format(id=self._id)
-        else:
-            return self._path_template.format(parent_path=self._parent.path, id=self._id)
+        return self._path_template.format(parent_path=self._parent.path, id=self._id)
 
     def data(self):
         fields = dict()
@@ -239,7 +236,6 @@ class _ModelObject:
             self._parent._mark_modified()
 
 class _Repo(_ModelObject):
-    _path_template = "repos/{id}"
     _child_vars = ["branches"]
 
     def __init__(self, model, id, branches={}):
@@ -250,6 +246,10 @@ class _Repo(_ModelObject):
         for branch_id, branch_data in branches.items():
             branch = _Branch(self._model, branch_id, self, **branch_data)
             self.branches[branch_id] = branch
+
+    @property
+    def path(self):
+        return f"repos/{self._id}"
 
 class _Branch(_ModelObject):
     _path_template = "{parent_path}/branches/{id}"
