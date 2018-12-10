@@ -90,7 +90,6 @@ class Model:
         with self._lock:
             repo = _Repo(self, repo_id, **repo_data)
             self.repos[repo_id] = repo
-
             repo.mark_modified()
 
     def delete_repo(self, repo_id):
@@ -114,9 +113,7 @@ class Model:
     def delete_branch(self, repo_id, branch_id):
         with self._lock:
             repo = self.repos[repo_id]
-
             del repo.branches[branch_id]
-
             repo.mark_modified()
 
     def put_tag(self, repo_id, branch_id, tag_id, tag_data):
@@ -181,9 +178,6 @@ class Model:
             del tag.artifacts[artifact_id]
 
             tag.mark_modified()
-
-class DataError(Exception):
-    pass
 
 class _ModelObject:
     def __init__(self, model, id, parent):
@@ -288,10 +282,11 @@ class _Artifact(_ModelObject):
 
     @staticmethod
     def create(model, id, parent, **artifact_data):
-        if "type" not in artifact_data:
-            raise DataError("Artifact data has no type field")
+        try:
+            type = artifact_data["type"]
+        except KeyError:
+            raise TypeError("Artifact data has no type field")
 
-        type = artifact_data["type"]
         cls = _Artifact._subclasses_by_type[type]
         obj = cls(model, id, parent, **artifact_data)
 

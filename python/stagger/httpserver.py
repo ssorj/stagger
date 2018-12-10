@@ -32,8 +32,6 @@ from starlette.staticfiles import *
 
 _log = _logging.getLogger("httpserver")
 
-__all__ = ["HttpServer"]
-
 class _HttpServer:
     def __init__(self, app, host="0.0.0.0", port=8080):
         self.app = app
@@ -105,6 +103,10 @@ class _AsgiHandler:
 
         try:
             response = await self.process(request)
+        except KeyError as e:
+            return _NotFoundResponse(e)
+        except TypeError as e:
+            return _BadDataResponse(e)
         except _json_decoder.JSONDecodeError as e:
             return _BadJsonResponse(e)
 
@@ -170,29 +172,17 @@ class _RepoHandler(_ModelObjectHandler):
 
         if request.method == "PUT":
             repo_data = await request.json()
-
-            try:
-                model.put_repo(repo_id, repo_data)
-            except (DataError, TypeError) as e:
-                return _BadDataResponse(e)
-
+            model.put_repo(repo_id, repo_data)
             return Response("OK\n")
 
         if request.method == "DELETE":
-            try:
-                model.delete_repo(repo_id)
-            except KeyError as e:
-                return _NotFoundResponse(e)
-
+            model.delete_repo(repo_id)
             return Response("OK\n")
 
         if request.method == "HEAD":
             return Response("")
 
-        try:
-            request.object = model.repos[repo_id]
-        except KeyError as e:
-            return _NotFoundResponse(e)
+        request.object = model.repos[repo_id]
 
 class _BranchHandler(_ModelObjectHandler):
     async def process(self, request):
@@ -202,29 +192,17 @@ class _BranchHandler(_ModelObjectHandler):
 
         if request.method == "PUT":
             branch_data = await request.json()
-
-            try:
-                model.put_branch(repo_id, branch_id, branch_data)
-            except (DataError, TypeError) as e:
-                return _BadDataResponse(e)
-
+            model.put_branch(repo_id, branch_id, branch_data)
             return Response("OK\n")
 
         if request.method == "DELETE":
-            try:
-                model.delete_branch(repo_id, branch_id)
-            except KeyError as e:
-                return _NotFoundResponse(e)
-
+            model.delete_branch(repo_id, branch_id)
             return Response("OK\n")
 
         if request.method == "HEAD":
             return Response("")
 
-        try:
-            request.object = model.repos[repo_id].branches[branch_id]
-        except KeyError as e:
-            return _NotFoundResponse(e)
+        request.object = model.repos[repo_id].branches[branch_id]
 
 class _TagHandler(_ModelObjectHandler):
     async def process(self, request):
@@ -235,29 +213,17 @@ class _TagHandler(_ModelObjectHandler):
 
         if request.method == "PUT":
             tag_data = await request.json()
-
-            try:
-                model.put_tag(repo_id, branch_id, tag_id, tag_data)
-            except (DataError, TypeError) as e:
-                return _BadDataResponse(e)
-
+            model.put_tag(repo_id, branch_id, tag_id, tag_data)
             return Response("OK\n")
 
         if request.method == "DELETE":
-            try:
-                model.delete_tag(repo_id, branch_id, tag_id)
-            except KeyError as e:
-                return _NotFoundResponse(e)
-
+            model.delete_tag(repo_id, branch_id, tag_id)
             return Response("OK\n")
 
         if request.method == "HEAD":
             return Response("")
 
-        try:
-            request.object = model.repos[repo_id].branches[branch_id].tags[tag_id]
-        except KeyError as e:
-            return _NotFoundResponse(e)
+        request.object = model.repos[repo_id].branches[branch_id].tags[tag_id]
 
 class _ArtifactHandler(_ModelObjectHandler):
     async def process(self, request):
@@ -269,26 +235,14 @@ class _ArtifactHandler(_ModelObjectHandler):
 
         if request.method == "PUT":
             artifact_data = await request.json()
-
-            try:
-                model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
-            except (DataError, TypeError) as e:
-                return _BadDataResponse(e)
-
+            model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
             return Response("OK\n")
 
         if request.method == "DELETE":
-            try:
-                model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
-            except KeyError as e:
-                return _NotFoundResponse(e)
-
+            model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
             return Response("OK\n")
 
         if request.method == "HEAD":
             return Response("")
 
-        try:
-            request.object = model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]
-        except KeyError as e:
-            return _NotFoundResponse(e)
+        request.object = model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]
