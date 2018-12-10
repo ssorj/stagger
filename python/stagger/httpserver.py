@@ -21,14 +21,12 @@ import json as _json
 import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
+import starlette.requests as _requests
+import starlette.responses as _responses
+import starlette.routing as _routing
+import starlette.staticfiles as _staticfiles
 import uuid as _uuid
 import uvicorn as _uvicorn
-
-from .model import *
-from starlette.requests import *
-from starlette.responses import *
-from starlette.routing import *
-from starlette.staticfiles import *
 
 _log = _logging.getLogger("httpserver")
 
@@ -41,18 +39,18 @@ class _HttpServer:
         static_dir = _os.path.join(self.app.home, "static")
 
         routes = [
-            Route("/api/data",
-                  endpoint=_ModelHandler, methods=["GET", "HEAD"]),
-            Route("/api/repos/{repo_id}",
-                  endpoint=_RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Route("/api/repos/{repo_id}/branches/{branch_id}",
-                  endpoint=_BranchHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}",
-                  endpoint=_TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}/artifacts/{artifact_id}",
-                  endpoint=_ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            Route("/", endpoint=_IndexHandler, methods=["GET", "HEAD"]),
-            Mount("", app=StaticFiles(directory=static_dir)),
+            _routing.Route("/api/data",
+                           endpoint=_ModelHandler, methods=["GET", "HEAD"]),
+            _routing.Route("/api/repos/{repo_id}",
+                           endpoint=_RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+            _routing.Route("/api/repos/{repo_id}/branches/{branch_id}",
+                           endpoint=_BranchHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+            _routing.Route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}",
+                           endpoint=_TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+            _routing.Route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}/artifacts/{artifact_id}",
+                           endpoint=_ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+            _routing.Route("/", endpoint=_IndexHandler, methods=["GET", "HEAD"]),
+            _routing.Mount("", app=_staticfiles.StaticFiles(directory=static_dir)),
         ]
 
         self._router = _Router(self.app, routes)
@@ -60,7 +58,7 @@ class _HttpServer:
     def run(self):
         _uvicorn.run(self._router, self.host, self.port, log_level="warning")
 
-class _Router(Router):
+class _Router(_routing.Router):
     def __init__(self, app, routes):
         super().__init__(routes)
         self.app = app
@@ -69,25 +67,25 @@ class _Router(Router):
         scope["app"] = self.app
         return super().__call__(scope)
 
-class _NotFoundResponse(PlainTextResponse):
+class _NotFoundResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
         message = f"Not found: {exception}"
         super().__init__(message, 404)
         print(message)
 
-class _NotModifiedResponse(PlainTextResponse):
+class _NotModifiedResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
         message = "Not modified"
         super().__init__(message, 304)
         print(message)
 
-class _BadJsonResponse(PlainTextResponse):
+class _BadJsonResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
         message = f"Bad request: Failure decoding JSON: {exception}"
         super().__init__(message, 400)
         print(message)
 
-class _BadDataResponse(PlainTextResponse):
+class _BadDataResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
         message = f"Bad request: Illegal data: {exception}"
         super().__init__(message, 400)
@@ -98,7 +96,7 @@ class _AsgiHandler:
         self.scope = scope
 
     async def __call__(self, receive, send):
-        request = Request(self.scope, receive)
+        request = _requests.Request(self.scope, receive)
         request.app = request["app"]
 
         try:
@@ -134,7 +132,7 @@ class _AsgiHandler:
 
     async def process(self, request):
         if request.method == "HEAD":
-            return Response("")
+            return _responses.Response("")
 
     def etag(self, request):
         pass
@@ -156,14 +154,14 @@ class _ModelHandler(_AsgiHandler):
         return str(request.app.model.revision)
 
     async def render(self, request):
-        return JSONResponse(request.app.model.data())
+        return _responses.JSONResponse(request.app.model.data())
 
 class _ModelObjectHandler(_AsgiHandler):
     def etag(self, request):
         return str(request.object._digest)
 
     async def render(self, request):
-        return JSONResponse(request.object.data())
+        return _responses.JSONResponse(request.object.data())
 
 class _RepoHandler(_ModelObjectHandler):
     async def process(self, request):
@@ -173,14 +171,14 @@ class _RepoHandler(_ModelObjectHandler):
         if request.method == "PUT":
             repo_data = await request.json()
             model.put_repo(repo_id, repo_data)
-            return Response("OK\n")
+            return _responses.Response("OK\n")
 
         if request.method == "DELETE":
             model.delete_repo(repo_id)
-            return Response("OK\n")
+            return _responses.Response("OK\n")
 
         if request.method == "HEAD":
-            return Response("")
+            return _responses.Response("")
 
         request.object = model.repos[repo_id]
 
@@ -193,14 +191,14 @@ class _BranchHandler(_ModelObjectHandler):
         if request.method == "PUT":
             branch_data = await request.json()
             model.put_branch(repo_id, branch_id, branch_data)
-            return Response("OK\n")
+            return _responses.Response("OK\n")
 
         if request.method == "DELETE":
             model.delete_branch(repo_id, branch_id)
-            return Response("OK\n")
+            return _responses.Response("OK\n")
 
         if request.method == "HEAD":
-            return Response("")
+            return _responses.Response("")
 
         request.object = model.repos[repo_id].branches[branch_id]
 
@@ -214,14 +212,14 @@ class _TagHandler(_ModelObjectHandler):
         if request.method == "PUT":
             tag_data = await request.json()
             model.put_tag(repo_id, branch_id, tag_id, tag_data)
-            return Response("OK\n")
+            return _responses.Response("OK\n")
 
         if request.method == "DELETE":
             model.delete_tag(repo_id, branch_id, tag_id)
-            return Response("OK\n")
+            return _responses.Response("OK\n")
 
         if request.method == "HEAD":
-            return Response("")
+            return _responses.Response("")
 
         request.object = model.repos[repo_id].branches[branch_id].tags[tag_id]
 
@@ -236,13 +234,13 @@ class _ArtifactHandler(_ModelObjectHandler):
         if request.method == "PUT":
             artifact_data = await request.json()
             model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
-            return Response("OK\n")
+            return _responses.Response("OK\n")
 
         if request.method == "DELETE":
             model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
-            return Response("OK\n")
+            return _responses.Response("OK\n")
 
         if request.method == "HEAD":
-            return Response("")
+            return _responses.Response("")
 
         request.object = model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]

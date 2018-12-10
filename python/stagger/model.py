@@ -26,7 +26,7 @@ import traceback as _traceback
 
 _log = _logging.getLogger("model")
 
-class Model:
+class _Model:
     def __init__(self, app, data_file):
         self.app = app
         self.data_file = data_file

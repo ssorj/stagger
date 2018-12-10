@@ -24,7 +24,7 @@ import time as _time
 
 from .amqpserver import _AmqpServer
 from .httpserver import _HttpServer
-from .model import *
+from .model import _Model
 
 class Application:
     def __init__(self, home, data_dir=None, amqp_port=5672, http_port=8080):
@@ -38,7 +38,7 @@ class Application:
 
         data_file = _os.path.join(self.data_dir, "data.json")
 
-        self.model = Model(self, data_file)
+        self.model = _Model(self, data_file)
         self.amqp_server = _AmqpServer(self, port=self.amqp_port)
         self.http_server = _HttpServer(self, port=self.http_port)
 
