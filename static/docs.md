@@ -88,6 +88,7 @@ set of named artifacts.
     "build_id": "&lt;build-id&gt;",
     "build_url": "&lt;build-url&gt;",
     "commit_id": "&lt;commit-id&gt;",
+    "files_url": "&lt;files-url&gt;",
     "artifacts": {
         "&lt;artifact-id&gt;": { /* Artifact fields */ },
         "&lt;artifact-id&gt;": { /* Artifact fields */ },

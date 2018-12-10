@@ -147,7 +147,7 @@ class _IndexHandler(_AsgiHandler):
         return self._etag
 
     async def render(self, request):
-        return FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
+        return _responses.FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
 
 class _ModelHandler(_AsgiHandler):
     def etag(self, request):
