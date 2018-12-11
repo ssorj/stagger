@@ -49,7 +49,6 @@ set of named tags.
 
 <pre>
 {
-    "job_url": "&lt;job-url&gt;",
     "tags": {
         "&lt;tag-id&gt;": { /* Tag fields */ },
         "&lt;tag-id&gt;": { /* Tag fields */ },

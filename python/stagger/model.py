@@ -249,10 +249,9 @@ class _Branch(_ModelObject):
     _path_template = "{parent_path}/branches/{id}"
     _child_vars = ["tags"]
 
-    def __init__(self, model, id, parent, job_url=None, tags={}):
+    def __init__(self, model, id, parent, tags={}):
         super().__init__(model, id, parent)
 
-        self.job_url = job_url
         self.tags = dict()
 
         for tag_id, tag_data in tags.items():
