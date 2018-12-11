@@ -53,13 +53,13 @@ build: ${BIN_TARGETS} build/prefix.txt
 
 .PHONY: install
 install: build
-	scripts/install-files build/bin ${DESTDIR}$$(cat build/prefix.txt)/bin
-	scripts/install-files python/stagger ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/python/stagger
-	scripts/install-files build/static ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/static
+	python3 scripts/install-files build/bin ${DESTDIR}$$(cat build/prefix.txt)/bin
+	python3 scripts/install-files python/stagger ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/python/stagger
+	python3 scripts/install-files build/static ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/static
 
 .PHONY: test
 test: build
-	scripts/test
+	python3 scripts/test
 
 .PHONY: run
 run: build
@@ -87,7 +87,7 @@ build/prefix.txt:
 	echo ${PREFIX} > build/prefix.txt
 
 build/bin/%: bin/%.in
-	scripts/configure-file -a stagger_home=${INSTALLED_STAGGER_HOME} $< $@
+	python3 scripts/configure-file -a stagger_home=${INSTALLED_STAGGER_HOME} $< $@
 
 .PHONY: update-plano
 update-plano:

@@ -2,6 +2,4 @@
 
 make install
 
-export PATH=~/.local/bin:$PATH
-
-exec stagger
+exec python3 ~/.local/bin/stagger
