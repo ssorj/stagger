@@ -1,6 +1,7 @@
 #!/bin/bash
 
-make PREFIX=/usr
 make install
+
+export PATH=~/.local/bin:$PATH
 
 exec stagger
