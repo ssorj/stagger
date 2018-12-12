@@ -23,13 +23,16 @@ MAINTAINER Justin Ross <jross@apache.org>
 RUN dnf -qy --setopt deltarpm=0 install gcc make python3-devel python3-qpid-proton redhat-rpm-config \
  && dnf -q clean all
 
-COPY . /home/app
-RUN useradd --user-group --no-create-home app && chown -R app:app /home/app
-USER app
-WORKDIR /home/app/
+COPY . /app
+
+ENV HOME=/app
+WORKDIR /app
 
 RUN pip3 install --user starlette uvicorn aiofiles
-RUN make clean build install
+RUN make clean install
 
-ENV PATH=/home/app/.local/bin:$PATH
+RUN chown -R 1001:0 /app && chmod -R 775 /app
+USER 1001
+
+ENV PATH=/app/.local/bin:$PATH
 CMD ["stagger"]

@@ -81,6 +81,8 @@ debug-image:
 push-image:
 	sudo docker push ssorj/stagger
 
+# To tell the cluster about the new image:
+#
 # oc tag --source=docker ssorj/stagger:latest stagger:latest
 
 build/prefix.txt:
