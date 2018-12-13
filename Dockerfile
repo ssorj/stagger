@@ -18,21 +18,23 @@
 #
 
 FROM fedora
-MAINTAINER Justin Ross <jross@apache.org>
 
 RUN dnf -qy --setopt deltarpm=0 install gcc make python3-devel python3-qpid-proton redhat-rpm-config \
  && dnf -q clean all
 
-COPY . /app
+COPY . /app/src
 
 ENV HOME=/app
-WORKDIR /app
+WORKDIR /app/src
 
 RUN pip3 install --user starlette uvicorn aiofiles
 RUN make clean install
 
 RUN chown -R 1001:0 /app && chmod -R 775 /app
 USER 1001
+
+EXPOSE 8080
+EXPOSE 5672
 
 ENV PATH=/app/.local/bin:$PATH
 CMD ["stagger"]
