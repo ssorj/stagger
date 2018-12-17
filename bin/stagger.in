@@ -29,8 +29,8 @@ from stagger.app import *
 
 if __name__ == "__main__":
     data_dir = os.environ.get("STAGGER_DATA_DIR")
-    http_port = int(os.environ.get("STAGGER_HTTP_PORT", 8080))
-    amqp_port = int(os.environ.get("STAGGER_AMQP_PORT", 5672))
+    http_port = int(os.environ.get("STAGGER_HTTP_PORT_", 8080))
+    amqp_port = int(os.environ.get("STAGGER_AMQP_PORT_", 5672))
 
     app = Application(home, data_dir=data_dir, http_port=http_port, amqp_port=amqp_port)
     app.run()

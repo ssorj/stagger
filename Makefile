@@ -71,11 +71,11 @@ build-image:
 
 .PHONY: run-image
 run-image:
-	sudo docker run -p 8080:8080 ssorj/stagger
+	sudo docker run --rm --user 9999 -p 8080:8080 ssorj/stagger
 
 .PHONY: debug-image
 debug-image:
-	sudo docker run -p 8080:8080 -it ssorj/stagger /bin/bash
+	sudo docker run --rm --user 9999 -p 8080:8080 -it ssorj/stagger /bin/bash
 
 .PHONY: push-image
 push-image:

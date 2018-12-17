@@ -23,7 +23,6 @@ RUN dnf -qy --setopt deltarpm=0 install gcc make python3-devel python3-qpid-prot
  && dnf -q clean all
 
 COPY . /app/src
-
 ENV HOME=/app
 WORKDIR /app/src
 
