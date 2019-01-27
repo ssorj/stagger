@@ -56,7 +56,7 @@ class _HttpServer:
         self._router = _Router(self.app, routes)
 
     def run(self):
-        _uvicorn.run(self._router, self.host, self.port, log_level="warning")
+        _uvicorn.run(self._router, host=self.host, port=self.port, log_level="info")
 
 class _Router(_routing.Router):
     def __init__(self, app, routes):
@@ -102,11 +102,11 @@ class _AsgiHandler:
         try:
             response = await self.process(request)
         except KeyError as e:
-            return _NotFoundResponse(e)
+            response = _NotFoundResponse(e)
         except TypeError as e:
-            return _BadDataResponse(e)
+            response = _BadDataResponse(e)
         except _json_decoder.JSONDecodeError as e:
-            return _BadJsonResponse(e)
+            response = _BadJsonResponse(e)
 
         if response is not None:
             await response(receive, send)
