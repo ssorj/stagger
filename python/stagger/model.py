@@ -49,7 +49,7 @@ class Model:
             assert "revision" in data, "No revision field in data"
 
             for repo_id, repo_data in data["repos"].items():
-                repo = Repo(self, repo_id, **repo_data)
+                repo = Repo(self, repo_id, None, **repo_data)
                 self.repos[repo_id] = repo
 
             self.revision = data["revision"]
@@ -88,7 +88,7 @@ class Model:
 
     def put_repo(self, repo_id, repo_data):
         with self._lock:
-            repo = Repo(self, repo_id, **repo_data)
+            repo = Repo(self, repo_id, None, **repo_data)
             self.repos[repo_id] = repo
             repo.mark_modified()
 
@@ -102,7 +102,7 @@ class Model:
             repo = self.repos.get(repo_id)
 
             if repo is None:
-                repo = Repo(self, repo_id)
+                repo = Repo(self, repo_id, None)
                 self.repos[repo_id] = repo
 
             branch = Branch(self, branch_id, repo, **branch_data)
@@ -121,7 +121,7 @@ class Model:
             repo = self.repos.get(repo_id)
 
             if repo is None:
-                repo = Repo(self, repo_id)
+                repo = Repo(self, repo_id, None)
                 self.repos[repo_id] = repo
 
             branch = repo.branches.get(branch_id)
@@ -149,7 +149,7 @@ class Model:
             repo = self.repos.get(repo_id)
 
             if repo is None:
-                repo = Repo(self, repo_id)
+                repo = Repo(self, repo_id, None)
                 self.repos[repo_id] = repos
 
             branch = repo.branches.get(branch_id)
@@ -183,11 +183,36 @@ class BadDataError(Exception):
     pass
 
 class ModelObject:
-    def __init__(self, model, id, parent):
+    _fields = []
+    _required_fields = []
+    _child_fields = []
+
+    def __init__(self, model, id, parent, **fields):
         self._model = model
         self._id = id
         self._parent = parent
         self._digest = None
+
+        missing = list()
+
+        for name in self._required_fields:
+            if name not in fields or fields[name] is None:
+                missing.append(name)
+
+        if missing:
+            raise BadDataError(f"{self} is missing required values: {', '.join(missing)}")
+
+        for name in self._fields:
+            if name in self._child_fields:
+                continue
+
+            setattr(self, name, fields.get(name, None))
+
+        self._init_children(**fields)
+        self._compute_digest()
+
+    def _init_children(self, **fields):
+        pass
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.path})"
@@ -196,16 +221,6 @@ class ModelObject:
     def path(self):
         return self._path_template.format(parent_path=self._parent.path, id=self._id)
 
-    def _require(self, *field_names):
-        missing = list()
-
-        for name in field_names:
-            if getattr(self, name, None) is None:
-                missing.append(name)
-
-        if missing:
-            raise BadDataError(f"{self} is missing required values: {', '.join(missing)}")
-
     def data(self):
         fields = dict()
 
@@ -213,7 +228,7 @@ class ModelObject:
             if name.startswith("_"):
                 continue
 
-            if name in self._child_vars:
+            if name in self._child_fields:
                 value = self._child_data(value)
 
             fields[name] = value
@@ -246,20 +261,15 @@ class ModelObject:
         self._digest = _binascii.crc32(self.json().encode("utf-8"))
 
 class Repo(ModelObject):
-    _child_vars = ["branches"]
+    _fields = ["source_url", "job_url", "branches"]
+    _child_fields = ["branches"]
 
-    def __init__(self, model, id, source_url=None, job_url=None, branches={}, **kwargs):
-        super().__init__(model, id, None)
-
-        self.source_url = None
-        self.job_url = None
+    def _init_children(self, **fields):
         self.branches = dict()
 
-        for branch_id, branch_data in branches.items():
+        for branch_id, branch_data in fields.get("branches", {}).items():
             branch = Branch(self._model, branch_id, self, **branch_data)
             self.branches[branch_id] = branch
-
-        self._compute_digest()
 
     @property
     def path(self):
@@ -267,43 +277,31 @@ class Repo(ModelObject):
 
 class Branch(ModelObject):
     _path_template = "{parent_path}/branches/{id}"
-    _child_vars = ["tags"]
+    _fields = ["tags"]
+    _child_fields = ["tags"]
 
-    def __init__(self, model, id, parent, tags={}, **kwargs):
-        super().__init__(model, id, parent)
-
+    def _init_children(self, **fields):
         self.tags = dict()
 
-        for tag_id, tag_data in tags.items():
+        for tag_id, tag_data in fields.get("tags", {}).items():
             tag = Tag(self._model, tag_id, self, **tag_data)
             self.tags[tag_id] = tag
 
-        self._compute_digest()
-
 class Tag(ModelObject):
     _path_template = "{parent_path}/tags/{id}"
-    _child_vars = ["artifacts"]
+    _fields = ["build_id", "build_url", "commit_id", "commit_url", "artifacts"]
+    _required_fields = ["build_id"]
+    _child_fields = ["artifacts"]
 
-    def __init__(self, model, id, parent,
-                 build_id=None, build_url=None, commit_id=None, commit_url=None, artifacts={}, **kwargs):
-        super().__init__(model, id, parent)
-
-        self.build_id = build_id
-        self.build_url = build_url
-        self.commit_id = commit_id
-        self.commit_url = commit_url
+    def _init_children(self, **fields):
         self.artifacts = dict()
 
-        for artifact_id, artifact_data in artifacts.items():
+        for artifact_id, artifact_data in fields.get("artifacts", {}).items():
             artifact = Artifact.create(self._model, artifact_id, self, **artifact_data)
             self.artifacts[artifact_id] = artifact
 
-        self._require("build_id")
-        self._compute_digest()
-
 class Artifact(ModelObject):
     _path_template = "{parent_path}/artifacts/{id}"
-    _child_vars = []
 
     @staticmethod
     def create(model, id, parent, **artifact_data):
@@ -317,57 +315,21 @@ class Artifact(ModelObject):
 
         return obj
 
-    def __init__(self, model, id, parent, type):
-        super().__init__(model, id, parent)
-
-        self.type = type
-
 class ContainerArtifact(Artifact):
-    def __init__(self, model, id, parent,
-                 type=None, registry_url=None, repository=None, image_id=None, **kwargs):
-        super().__init__(model, id, parent, type)
-
-        self.registry_url = registry_url
-        self.repository = repository
-        self.image_id = image_id
-
-        self._require("registry_url", "repository", "image_id")
-        self._compute_digest()
+    _fields = ["type", "registry_url", "repository", "image_id"]
+    _required_fields = _fields
 
 class MavenArtifact(Artifact):
-    def __init__(self, model, id, parent,
-                 type=None, repository_url=None, group_id=None, artifact_id=None, version=None, **kwargs):
-        super().__init__(model, id, parent, type)
-
-        self.repository_url = repository_url
-        self.group_id = group_id
-        self.artifact_id = artifact_id
-        self.version = version
-
-        self._require("repository_url", "group_id", "artifact_id", "version")
-        self._compute_digest()
+    _fields = ["type", "repository_url", "group_id", "artifact_id", "version"]
+    _required_fields = _fields
 
 class FileArtifact(Artifact):
-    def __init__(self, model, id, parent, type=None, url=None, **kwargs):
-        super().__init__(model, id, parent, type)
-
-        self.url = url
-
-        self._require("url")
-        self._compute_digest()
+    _fields = ["type", "url"]
+    _required_fields = _fields
 
 class RpmArtifact(Artifact):
-    def __init__(self, model, id, parent,
-                 type=None, repository_url=None, name=None, version=None, release=None, **kwargs):
-        super().__init__(model, id, parent, type)
-
-        self.repository_url = repository_url
-        self.name = name
-        self.version = version
-        self.release = release
-
-        self._require("repository_url", "name", "version", "release")
-        self._compute_digest()
+    _fields = ["type", "repository_url", "name", "version", "release"]
+    _required_fields = _fields
 
 Artifact._subclasses_by_type = {
     "container": ContainerArtifact,
