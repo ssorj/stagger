@@ -133,8 +133,7 @@ class _AsgiHandler:
         await response(receive, send)
 
     async def process(self, request):
-        if request.method == "HEAD":
-            return _responses.Response("")
+        pass
 
     def etag(self, request):
         pass
@@ -162,6 +161,14 @@ class _ModelObjectHandler(_AsgiHandler):
     def etag(self, request):
         return str(request.object._digest)
 
+    def process_head(self, request):
+        assert request.method == "HEAD"
+
+        response = _responses.Response("")
+        response.headers["ETag"] = f'"{self.etag(request)}"'
+
+        return response
+
     async def render(self, request):
         return _responses.JSONResponse(request.object.data())
 
@@ -179,10 +186,10 @@ class _RepoHandler(_ModelObjectHandler):
             model.delete_repo(repo_id)
             return _responses.Response("OK\n")
 
-        if request.method == "HEAD":
-            return _responses.Response("")
-
         request.object = model.repos[repo_id]
+
+        if request.method == "HEAD":
+            return self.process_head(request)
 
 class _BranchHandler(_ModelObjectHandler):
     async def process(self, request):
@@ -199,10 +206,10 @@ class _BranchHandler(_ModelObjectHandler):
             model.delete_branch(repo_id, branch_id)
             return _responses.Response("OK\n")
 
-        if request.method == "HEAD":
-            return _responses.Response("")
-
         request.object = model.repos[repo_id].branches[branch_id]
+
+        if request.method == "HEAD":
+            return self.process_head(request)
 
 class _TagHandler(_ModelObjectHandler):
     async def process(self, request):
@@ -220,10 +227,10 @@ class _TagHandler(_ModelObjectHandler):
             model.delete_tag(repo_id, branch_id, tag_id)
             return _responses.Response("OK\n")
 
-        if request.method == "HEAD":
-            return _responses.Response("")
-
         request.object = model.repos[repo_id].branches[branch_id].tags[tag_id]
+
+        if request.method == "HEAD":
+            return self.process_head(request)
 
 class _ArtifactHandler(_ModelObjectHandler):
     async def process(self, request):
@@ -242,7 +249,7 @@ class _ArtifactHandler(_ModelObjectHandler):
             model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
             return _responses.Response("OK\n")
 
-        if request.method == "HEAD":
-            return _responses.Response("")
-
         request.object = model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]
+
+        if request.method == "HEAD":
+            return self.process_head(request)
