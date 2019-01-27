@@ -203,16 +203,14 @@ class ModelObject:
             raise BadDataError(f"{self} is missing required values: {', '.join(missing)}")
 
         for name in self._fields:
-            if name in self._child_fields:
-                continue
-
-            setattr(self, name, fields.get(name, None))
+            if name not in self._child_fields:
+                setattr(self, name, fields.get(name, None))
 
         self._init_children(**fields)
         self._compute_digest()
 
     def _init_children(self, **fields):
-        pass
+        assert not self._child_fields
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.path})"
