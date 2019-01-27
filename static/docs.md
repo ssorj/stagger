@@ -1,8 +1,12 @@
-# Stagger
+# Stagger docs
 
-A service for tagging software builds and describing the resulting
-build artifacts.  A Stagger tag binds a well-known name to a concrete,
-installable version of your software.
+[Home](/index.html)
+
+Stagger is a service for tagging software builds and describing the
+resulting build artifacts.  A Stagger tag binds a well-known name to a
+concrete, installable version of your software.
+
+#### Contents
 
 * [Entity fields and operations](#entity-fields-and-operations)
   * [Build repos](#build-repos)
@@ -245,7 +249,7 @@ curl --fail -X PUT &lt;service-url&gt/api/repos/example-repo/branches/master/tag
             "repository_url": "https://maven.example.com/",
             "group_id": "org.example",
             "artifact_id": "example",
-            "version": "1.0.0-SNAPSHOT"
+            "version": "1.0.0-999"
         }
     }
 }
