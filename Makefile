@@ -67,19 +67,21 @@ run: build
 
 .PHONY: build-image
 build-image:
-	sudo docker build -t ssorj/stagger .
+	sudo docker build -t ssorj/stagger:latest .
 
 .PHONY: run-image
 run-image:
-	sudo docker run --rm --user 9999 -p 8080:8080 ssorj/stagger
+	sudo docker run --rm --user 9999 -p 8080:8080 ssorj/stagger:latest
 
 .PHONY: debug-image
 debug-image:
-	sudo docker run --rm --user 9999 -p 8080:8080 -it ssorj/stagger /bin/bash
+	sudo docker run --rm --user 9999 -p 8080:8080 -it ssorj/stagger:latest /bin/bash
+
+# Prerequisite: docker login
 
 .PHONY: push-image
 push-image:
-	sudo docker push ssorj/stagger
+	sudo docker push ssorj/stagger:latest
 
 # To tell the cluster about the new image:
 #
