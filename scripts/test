@@ -77,7 +77,7 @@ http_port = random_port()
 amqp_port = random_port()
 
 with working_dir("build"):
-    with working_env(STAGGER_HTTP_PORT=http_port, STAGGER_AMQP_PORT=amqp_port):
+    with working_env(STAGGER_HTTP_PORT_=http_port, STAGGER_AMQP_PORT_=amqp_port):
         server = start_process("stagger")
 
 try:
