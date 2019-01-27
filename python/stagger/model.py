@@ -150,18 +150,18 @@ class Model:
 
             if repo is None:
                 repo = Repo(self, repo_id, None)
-                self.repos[repo_id] = repos
+                self.repos[repo_id] = repo
 
             branch = repo.branches.get(branch_id)
 
             if branch is None:
-                branch = Branch(self, branch_id)
-                self.branches[branch_id] = branch
+                branch = Branch(self, branch_id, repo)
+                repo.branches[branch_id] = branch
 
             tag = branch.tags.get(tag_id)
 
             if tag is None:
-                tag = Tag(self, tag_id, repo)
+                tag = Tag(self, tag_id, branch)
                 branch.tags[tag_id] = tag
 
             artifact = Artifact.create(self, artifact_id, tag, **artifact_data)
@@ -288,7 +288,6 @@ class Branch(ModelObject):
 class Tag(ModelObject):
     _path_template = "{parent_path}/tags/{id}"
     _fields = ["build_id", "build_url", "commit_id", "commit_url", "artifacts"]
-    _required_fields = ["build_id"]
     _child_fields = ["artifacts"]
 
     def _init_children(self, **fields):

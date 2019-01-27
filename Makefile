@@ -43,7 +43,7 @@ help:
 
 .PHONY: clean
 clean:
-	rm -rf python/__pycache__ python/stagger/__pycache__
+	rm -rf python/__pycache__ python/stagger/__pycache__ scripts/__pycache__
 	rm -rf build
 
 .PHONY: build
@@ -54,12 +54,13 @@ build: ${BIN_TARGETS} build/prefix.txt
 .PHONY: install
 install: build
 	scripts/install-files build/bin ${DESTDIR}$$(cat build/prefix.txt)/bin
+	scripts/install-files python ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/python
 	scripts/install-files python/stagger ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/python/stagger
 	scripts/install-files build/static ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/static
 
 .PHONY: test
 test: build
-	scripts/test
+	stagger-test
 
 .PHONY: run
 run: build
@@ -67,21 +68,25 @@ run: build
 
 .PHONY: build-image
 build-image:
-	sudo docker build -t ssorj/stagger:latest .
+	sudo docker build -t ssorj/stagger .
+
+# .PHONY: test-image
+# test-image:
+# 	sudo docker run --rm --user 9999 ssorj/stagger -it /app/.local/bin/quiver-test
 
 .PHONY: run-image
 run-image:
-	sudo docker run --rm --user 9999 -p 8080:8080 ssorj/stagger:latest
+	sudo docker run --rm --user 9999 -p 8080:8080 ssorj/stagger
 
 .PHONY: debug-image
 debug-image:
-	sudo docker run --rm --user 9999 -p 8080:8080 -it ssorj/stagger:latest /bin/bash
+	sudo docker run --rm --user 9999 -p 8080:8080 -it ssorj/stagger /bin/bash
 
 # Prerequisite: docker login
 
 .PHONY: push-image
 push-image:
-	sudo docker push ssorj/stagger:latest
+	sudo docker push ssorj/stagger
 
 # To tell the cluster about the new image:
 #
@@ -92,10 +97,6 @@ build/prefix.txt:
 
 build/bin/%: bin/%.in
 	scripts/configure-file -a stagger_home=${INSTALLED_STAGGER_HOME} $< $@
-
-.PHONY: update-plano
-update-plano:
-	curl "https://raw.githubusercontent.com/ssorj/plano/master/python/plano.py" -o scripts/plano.py
 
 .PHONY: update-%
 update-%:
