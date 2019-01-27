@@ -242,7 +242,7 @@ curl --fail -X PUT &lt;service-url&gt/api/repos/example-repo/branches/master/tag
     "artifacts": {
         "example": {
             "type": "maven",
-            "repository_url": "&lt;maven-repository-url&gt;",
+            "repository_url": "https://maven.example.com/",
             "group_id": "org.example",
             "artifact_id": "example",
             "version": "1.0.0-SNAPSHOT"
@@ -264,7 +264,8 @@ curl --fail -X DELETE &lt;service-url&gt/api/repos/example-repo/branches/master/
 
 All of the HTTP endpoints support lightweight HEAD operations, and all
 responses contain an ETag header with a unique digest of the content.
-Use curl with an If-None-Match header to test for changes.
+Use curl with an If-None-Match header to periodically test for
+changes.
 
 ### Listening for updates with AMQP
 

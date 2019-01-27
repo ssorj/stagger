@@ -59,6 +59,10 @@ h2 {
     font-weight: 400;
 }
 
+h4 {
+    font-size: 0.9em;
+}
+
 a {
     text-decoration: none;
     color: rgba(15, 63, 127, 0.8);
@@ -68,10 +72,6 @@ ol,
 ul,
 dd {
     padding-left: 1.2em;
-}
-
-ul {
-    list-style-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdAAAAHQBMYXlgQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAABMSURBVCjPY/j//z8DFtwAxRhyuBTDQAMhDWDF9+/f/wfC2DRhVRwcHPwfhLFpwqrYxcUFjLFpwqkYlyayNJDsJLI8TVawkhVxBJMGABnYvZjQ/qzjAAAAAElFTkSuQmCC");
 }
 
 li,
