@@ -17,10 +17,10 @@
 # under the License.
 #
 
-FROM fedora
+FROM registry.fedoraproject.org/fedora-minimal
 
-RUN dnf -qy --setopt deltarpm=0 install gcc make python3-devel python3-qpid-proton redhat-rpm-config \
- && dnf -q clean all
+RUN microdnf --nodocs install gcc make python3-devel python3-qpid-proton redhat-rpm-config \
+ && microdnf clean all
 
 COPY . /app/src
 ENV HOME=/app
