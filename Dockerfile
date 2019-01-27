@@ -19,8 +19,7 @@
 
 FROM registry.fedoraproject.org/fedora-minimal
 
-RUN microdnf --nodocs install gcc make python3-devel python3-qpid-proton redhat-rpm-config \
- && microdnf clean all
+RUN microdnf --nodocs install make gcc python3-devel python3-qpid-proton && microdnf clean all
 
 COPY . /app/src
 ENV HOME=/app
