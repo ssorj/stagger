@@ -22,9 +22,9 @@ import os as _os
 import threading as _threading
 import time as _time
 
-from .amqpserver import _AmqpServer
-from .httpserver import _HttpServer
-from .model import _Model
+from .amqpserver import AmqpServer
+from .httpserver import HttpServer
+from .model import Model
 
 class Application:
     def __init__(self, home, data_dir=None, amqp_port=5672, http_port=8080):
@@ -38,9 +38,9 @@ class Application:
 
         data_file = _os.path.join(self.data_dir, "data.json")
 
-        self.model = _Model(self, data_file)
-        self.amqp_server = _AmqpServer(self, port=self.amqp_port)
-        self.http_server = _HttpServer(self, port=self.http_port)
+        self.model = Model(self, data_file)
+        self.amqp_server = AmqpServer(self, port=self.amqp_port)
+        self.http_server = HttpServer(self, port=self.http_port)
 
     def run(self):
         _logging.basicConfig(level=_logging.DEBUG)

@@ -31,7 +31,7 @@ import threading as _threading
 
 _log = _logging.getLogger("amqpserver")
 
-class _AmqpServer(_threading.Thread):
+class AmqpServer(_threading.Thread):
     def __init__(self, app, host="0.0.0.0", port=5672):
         super().__init__()
 

@@ -32,7 +32,7 @@ from .model import BadDataError
 
 _log = _logging.getLogger("httpserver")
 
-class _HttpServer:
+class HttpServer:
     def __init__(self, app, host="0.0.0.0", port=8080):
         self.app = app
         self.host = host

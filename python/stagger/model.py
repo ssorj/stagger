@@ -26,7 +26,7 @@ import traceback as _traceback
 
 _log = _logging.getLogger("model")
 
-class _Model:
+class Model:
     def __init__(self, app, data_file):
         self.app = app
         self.data_file = data_file
@@ -49,7 +49,7 @@ class _Model:
             assert "revision" in data, "No revision field in data"
 
             for repo_id, repo_data in data["repos"].items():
-                repo = _Repo(self, repo_id, **repo_data)
+                repo = Repo(self, repo_id, **repo_data)
                 self.repos[repo_id] = repo
 
             self.revision = data["revision"]
@@ -75,7 +75,7 @@ class _Model:
         repos = dict()
 
         for repo_id, repo in self.repos.items():
-            assert isinstance(repo, _Repo), repo
+            assert isinstance(repo, Repo), repo
             repos[repo_id] = repo.data()
 
         return {
@@ -88,7 +88,7 @@ class _Model:
 
     def put_repo(self, repo_id, repo_data):
         with self._lock:
-            repo = _Repo(self, repo_id, **repo_data)
+            repo = Repo(self, repo_id, **repo_data)
             self.repos[repo_id] = repo
             repo.mark_modified()
 
@@ -102,10 +102,10 @@ class _Model:
             repo = self.repos.get(repo_id)
 
             if repo is None:
-                repo = _Repo(self, repo_id)
+                repo = Repo(self, repo_id)
                 self.repos[repo_id] = repo
 
-            branch = _Branch(self, branch_id, repo, **branch_data)
+            branch = Branch(self, branch_id, repo, **branch_data)
             repo.branches[branch_id] = branch
 
             branch.mark_modified()
@@ -121,16 +121,16 @@ class _Model:
             repo = self.repos.get(repo_id)
 
             if repo is None:
-                repo = _Repo(self, repo_id)
+                repo = Repo(self, repo_id)
                 self.repos[repo_id] = repo
 
             branch = repo.branches.get(branch_id)
 
             if branch is None:
-                branch = _Branch(self, branch_id, repo)
+                branch = Branch(self, branch_id, repo)
                 repo.branches[branch_id] = branch
 
-            tag = _Tag(self, tag_id, branch, **tag_data)
+            tag = Tag(self, tag_id, branch, **tag_data)
             branch.tags[tag_id] = tag
 
             tag.mark_modified()
@@ -149,22 +149,22 @@ class _Model:
             repo = self.repos.get(repo_id)
 
             if repo is None:
-                repo = _Repo(self, repo_id)
+                repo = Repo(self, repo_id)
                 self.repos[repo_id] = repos
 
             branch = repo.branches.get(branch_id)
 
             if branch is None:
-                branch = _Branch(self, branch_id)
+                branch = Branch(self, branch_id)
                 self.branches[branch_id] = branch
 
             tag = branch.tags.get(tag_id)
 
             if tag is None:
-                tag = _Tag(self, tag_id, repo)
+                tag = Tag(self, tag_id, repo)
                 branch.tags[tag_id] = tag
 
-            artifact = _Artifact.create(self, artifact_id, tag, **artifact_data)
+            artifact = Artifact.create(self, artifact_id, tag, **artifact_data)
             tag.artifacts[artifact_id] = artifact
 
             artifact.mark_modified()
@@ -182,7 +182,7 @@ class _Model:
 class BadDataError(Exception):
     pass
 
-class _ModelObject:
+class ModelObject:
     def __init__(self, model, id, parent):
         self._model = model
         self._id = id
@@ -242,7 +242,7 @@ class _ModelObject:
         if self._parent is not None:
             self._parent._mark_modified()
 
-class _Repo(_ModelObject):
+class Repo(ModelObject):
     _child_vars = ["branches"]
 
     def __init__(self, model, id, branches={}, **kwargs):
@@ -251,14 +251,14 @@ class _Repo(_ModelObject):
         self.branches = dict()
 
         for branch_id, branch_data in branches.items():
-            branch = _Branch(self._model, branch_id, self, **branch_data)
+            branch = Branch(self._model, branch_id, self, **branch_data)
             self.branches[branch_id] = branch
 
     @property
     def path(self):
         return f"repos/{self._id}"
 
-class _Branch(_ModelObject):
+class Branch(ModelObject):
     _path_template = "{parent_path}/branches/{id}"
     _child_vars = ["tags"]
 
@@ -268,10 +268,10 @@ class _Branch(_ModelObject):
         self.tags = dict()
 
         for tag_id, tag_data in tags.items():
-            tag = _Tag(self._model, tag_id, self, **tag_data)
+            tag = Tag(self._model, tag_id, self, **tag_data)
             self.tags[tag_id] = tag
 
-class _Tag(_ModelObject):
+class Tag(ModelObject):
     _path_template = "{parent_path}/tags/{id}"
     _child_vars = ["artifacts"]
 
@@ -286,12 +286,12 @@ class _Tag(_ModelObject):
         self.artifacts = dict()
 
         for artifact_id, artifact_data in artifacts.items():
-            artifact = _Artifact.create(self._model, artifact_id, self, **artifact_data)
+            artifact = Artifact.create(self._model, artifact_id, self, **artifact_data)
             self.artifacts[artifact_id] = artifact
 
         self._require("build_id")
 
-class _Artifact(_ModelObject):
+class Artifact(ModelObject):
     _path_template = "{parent_path}/artifacts/{id}"
     _child_vars = []
 
@@ -302,7 +302,7 @@ class _Artifact(_ModelObject):
         except KeyError:
             raise BadDataError("Artifact data has no type field")
 
-        cls = _Artifact._subclasses_by_type[type]
+        cls = Artifact._subclasses_by_type[type]
         obj = cls(model, id, parent, **artifact_data)
 
         return obj
@@ -312,7 +312,7 @@ class _Artifact(_ModelObject):
 
         self.type = type
 
-class _ContainerArtifact(_Artifact):
+class ContainerArtifact(Artifact):
     def __init__(self, model, id, parent,
                  type=None, registry_url=None, repository=None, image_id=None, **kwargs):
         super().__init__(model, id, parent, type)
@@ -323,7 +323,7 @@ class _ContainerArtifact(_Artifact):
 
         self._require("registry_url", "repository", "image_id")
 
-class _MavenArtifact(_Artifact):
+class MavenArtifact(Artifact):
     def __init__(self, model, id, parent,
                  type=None, repository_url=None, group_id=None, artifact_id=None, version=None, **kwargs):
         super().__init__(model, id, parent, type)
@@ -335,7 +335,7 @@ class _MavenArtifact(_Artifact):
 
         self._require("repository_url", "group_id", "artifact_id", "version")
 
-class _FileArtifact(_Artifact):
+class FileArtifact(Artifact):
     def __init__(self, model, id, parent, type=None, url=None, **kwargs):
         super().__init__(model, id, parent, type)
 
@@ -343,7 +343,7 @@ class _FileArtifact(_Artifact):
 
         self._require("url")
 
-class _RpmArtifact(_Artifact):
+class RpmArtifact(Artifact):
     def __init__(self, model, id, parent,
                  type=None, repository_url=None, name=None, version=None, release=None, **kwargs):
         super().__init__(model, id, parent, type)
@@ -355,11 +355,11 @@ class _RpmArtifact(_Artifact):
 
         self._require("repository_url", "name", "version", "release")
 
-_Artifact._subclasses_by_type = {
-    "container": _ContainerArtifact,
-    "maven": _MavenArtifact,
-    "file": _FileArtifact,
-    "rpm": _RpmArtifact,
+Artifact._subclasses_by_type = {
+    "container": ContainerArtifact,
+    "maven": MavenArtifact,
+    "file": FileArtifact,
+    "rpm": RpmArtifact,
 }
 
 class _SaveThread(_threading.Thread):
