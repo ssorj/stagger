@@ -4,7 +4,22 @@ A service for tagging software builds and describing the resulting
 build artifacts.  A Stagger tag binds a well-known name to a concrete,
 installable version of your software.
 
-## Build repos
+* [Entity fields and operations](#entity-fields-and-operations)
+  * [Build repos](#build-repos)
+  * [Build branches](#build-branches)
+  * [Build tags](#build-tags)
+  * [Build artifacts](#build-artifacts)
+* [Using curl to perform operations](#using-curl-to-perform-operations)
+  * [Querying entities](#querying-entities)
+  * [Creating or updating entities](#creating-or-updating-entities)
+  * [Deleting entities](#deleting-entities)
+* [Detecting entity updates](#detecting-entity-updates)
+  * [Polling for updates with HTTP](#polling-for-updates-with-http)
+  * [Listening for updates with AMQP](#listening-for-updates-with-amqp)
+
+## Entity fields and operations
+
+### Build repos
 
 A build repo collects all the builds for a particular source
 repository.  It contains a set of named branches.
@@ -39,7 +54,7 @@ repository.  It contains a set of named branches.
 }
 </pre>
 
-## Build branches
+### Build branches
 
 A build branch represents a stream of builds from a source code
 branch.  This is usually the output of a CI job.  A branch contains a
@@ -74,7 +89,7 @@ set of named tags.
 }
 </pre>
 
-## Build tags
+### Build tags
 
 A build tag is a stable name representing a build with a particular
 status, such as "untested", "tested", or "released".  A tag contains a
@@ -113,7 +128,7 @@ set of named artifacts.
 }
 </pre>
 
-## Build artifacts
+### Build artifacts
 
 A build artifact holds the details to required to get and install one
 of the build outputs, such as Maven artifacts or container images.
@@ -209,7 +224,48 @@ I recommend IDs corresponding to the RPM package name, as in
 }
 </pre>
 
-## AMQP events
+## Using curl to perform operations
+
+### Querying entities
+
+<pre>
+curl --fail &lt;service-url&gt/api/repos/example-repo/branches/master/tags/tested
+</pre>
+
+### Creating or updating entities
+
+<pre>
+curl --fail -X PUT &lt;service-url&gt/api/repos/example-repo/branches/master/tags/tested -d @- &lt;&lt;EOF
+{
+    "build_id": "999",
+    "artifacts": {
+        "example": {
+            "type": "maven",
+            "repository_url": "&lt;maven-repository-url&gt;",
+            "group_id": "org.example",
+            "artifact_id": "example",
+            "version": "1.0.0-SNAPSHOT"
+        }
+    }
+}
+EOF
+</pre>
+
+### Deleting entities
+
+<pre>
+curl --fail -X DELETE &lt;service-url&gt/api/repos/example-repo/branches/master/tags/tested
+</pre>
+
+## Detecting entity updates
+
+### Polling for updates with HTTP
+
+All of the HTTP endpoints support lightweight HEAD operations, and all
+responses contain an ETag header with a unique digest of the content.
+Use curl with an If-None-Match header to test for changes.
+
+### Listening for updates with AMQP
 
 In addition to HTTP endpoints, Stagger publishes any updates of repos,
 branches, tags, or artifacts as AMQP messages.  They are published

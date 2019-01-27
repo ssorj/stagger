@@ -43,7 +43,7 @@ br {
 }
 
 body {
-    font: 10pt/14pt "Source Sans Pro", sans-serif;
+    font: 11pt/15pt "Source Sans Pro", sans-serif;
     font-weight: 400;
     color: rgba(0, 0, 0, 0.8);
     text-rendering: optimizeLegibility;
@@ -51,7 +51,7 @@ body {
 
 code,
 pre {
-    font: 9pt "Ubuntu Mono", monospace;
+    font: 10pt "Ubuntu Mono", monospace;
 }
 
 h1,
