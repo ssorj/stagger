@@ -152,7 +152,7 @@ section {
     margin: 1.5em 0;
 }
 
-body {
+body:last-child {
     margin: 2.4em 2em;
 }
 
