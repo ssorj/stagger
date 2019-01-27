@@ -276,12 +276,13 @@ class _Tag(_ModelObject):
     _child_vars = ["artifacts"]
 
     def __init__(self, model, id, parent,
-                 build_id=None, build_url=None, commit_id=None, artifacts={}, **kwargs):
+                 build_id=None, build_url=None, commit_id=None, commit_url=None, artifacts={}, **kwargs):
         super().__init__(model, id, parent)
 
         self.build_id = build_id
         self.build_url = build_url
         self.commit_id = commit_id
+        self.commit_url = commit_url
         self.artifacts = dict()
 
         for artifact_id, artifact_data in artifacts.items():

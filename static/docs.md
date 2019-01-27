@@ -84,10 +84,10 @@ set of named artifacts.
 
 <pre>
 {
-    "build_id": "&lt;build-id&gt;",
+    "build_id": "&lt;build-id&gt;", // Required and must not be null
     "build_url": "&lt;build-url&gt;",
     "commit_id": "&lt;commit-id&gt;",
-    "files_url": "&lt;files-url&gt;",
+    "commit_url": "&lt;commit-url&gt;",
     "artifacts": {
         "&lt;artifact-id&gt;": { /* Artifact fields */ },
         "&lt;artifact-id&gt;": { /* Artifact fields */ },
@@ -157,6 +157,7 @@ unstable version part, as in <code>amq-broker.zip</code>.
 
 <pre>
 {
+    // All fields are required and must not be null
     "type": "file",
     "url": "&lt;file-url&gt;"
 }
@@ -168,6 +169,7 @@ I recommend IDs corresponding to the container image ID.
 
 <pre>
 {
+    // All fields are required and must not be null
     "type": "container",
     "registry_url": "&lt;container-registry-url&gt;",
     "repository": "&lt;repository-name&gt;",
@@ -182,6 +184,7 @@ I recommend IDs corresponding to the Maven artifact ID, as in
 
 <pre>
 {
+    // All fields are required and must not be null
     "type": "maven",
     "repository_url": "&lt;maven-repo-url&gt;",
     "group_id": "&lt;maven-group-id&gt;",
@@ -197,6 +200,7 @@ I recommend IDs corresponding to the RPM package name, as in
 
 <pre>
 {
+    // All fields are required and must not be null
     "type": "rpm",
     "repository_url": "&lt;package-repo-url&gt;",
     "name": "&lt;package-name&gt;",
