@@ -348,23 +348,70 @@ def write_json(file, obj):
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         return _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
 
+def parse_json(json):
+    return _json.loads(json)
+
+def emit_json(obj):
+    return _json.dumps(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
+
+def http_get(url, output_file=None, insecure=False):
+    options = [
+        "-sf",
+        "-H", "'Expect:'",
+    ]
+
+    if insecure:
+        options.append("--insecure")
+
+    if output_file is None:
+        return call_for_stdout("curl {0} {1}", " ".join(options), url)
+
+    call("curl {0} {1} -o {2}", " ".join(options), url, output_file)
+
+def http_put(url, input_file, output_file=None, insecure=False):
+    options = [
+        "-sf",
+        "-X", "PUT",
+        "-H", "'Expect:'",
+    ]
+
+    if insecure:
+        options.append("--insecure")
+
+    if output_file is None:
+        return call_for_stdout("curl {0} {1} -d @{2}", " ".join(options), url, input_file)
+
+    call("curl {0} {1} -d @{2} -o {3}", " ".join(options), url, input_file, output_file)
+
+def http_get_json(url, insecure=False):
+    return parse_json(http_get(url, insecure=insecure))
+
+def http_put_json(url, data, insecure=False):
+    with temp_file() as f:
+        write_json(f, data)
+        http_put(url, f, insecure=insecure)
+
 def user_temp_dir():
     try:
         return ENV["XDG_RUNTIME_DIR"]
     except KeyError:
         return _tempfile.gettempdir()
 
-def make_temp_file(suffix=""):
-    dir = user_temp_dir()
+def make_temp_file(suffix="", dir=None):
+    if dir is None:
+        dir = user_temp_dir()
+
     return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
 
-def make_temp_dir(suffix=""):
-    dir = user_temp_dir()
+def make_temp_dir(suffix="", dir=None):
+    if dir is None:
+        dir = user_temp_dir()
+
     return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
 
 class temp_file(object):
-    def __init__(self, suffix=""):
-        self.file = make_temp_file(suffix=suffix)
+    def __init__(self, suffix="", dir=None):
+        self.file = make_temp_file(suffix=suffix, dir=dir)
 
     def __enter__(self):
         return self.file
