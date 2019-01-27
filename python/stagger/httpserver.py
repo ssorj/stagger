@@ -71,27 +71,19 @@ class _Router(_routing.Router):
 
 class _NotFoundResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
-        message = f"Not found: {exception}"
-        super().__init__(message, 404)
-        print(message)
+        super().__init__(f"Not found: {exception}", 404)
 
 class _NotModifiedResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
-        message = "Not modified"
-        super().__init__(message, 304)
-        print(message)
+        super().__init__("Not modified", 304)
 
 class _BadJsonResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
-        message = f"Bad request: Failure decoding JSON: {exception}"
-        super().__init__(message, 400)
-        print(message)
+        super().__init__(f"Bad request: Failure decoding JSON: {exception}", 400)
 
 class _BadDataResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
-        message = f"Bad request: Illegal data: {exception}"
-        super().__init__(message, 400)
-        print(message)
+        super().__init__(f"Bad request: Illegal data: {exception}", 400)
 
 class _AsgiHandler:
     def __init__(self, scope):
