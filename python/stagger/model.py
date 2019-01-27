@@ -236,11 +236,14 @@ class ModelObject:
         self._model.mark_modified()
 
     def _mark_modified(self):
-        self._digest = _binascii.crc32(self.json().encode("utf-8"))
+        self._compute_digest()
         self._model.app.amqp_server.fire_object_update(self)
 
         if self._parent is not None:
             self._parent._mark_modified()
+
+    def _compute_digest(self):
+        self._digest = _binascii.crc32(self.json().encode("utf-8"))
 
 class Repo(ModelObject):
     _child_vars = ["branches"]
@@ -255,6 +258,8 @@ class Repo(ModelObject):
         for branch_id, branch_data in branches.items():
             branch = Branch(self._model, branch_id, self, **branch_data)
             self.branches[branch_id] = branch
+
+        self._compute_digest()
 
     @property
     def path(self):
@@ -272,6 +277,8 @@ class Branch(ModelObject):
         for tag_id, tag_data in tags.items():
             tag = Tag(self._model, tag_id, self, **tag_data)
             self.tags[tag_id] = tag
+
+        self._compute_digest()
 
 class Tag(ModelObject):
     _path_template = "{parent_path}/tags/{id}"
@@ -292,6 +299,7 @@ class Tag(ModelObject):
             self.artifacts[artifact_id] = artifact
 
         self._require("build_id")
+        self._compute_digest()
 
 class Artifact(ModelObject):
     _path_template = "{parent_path}/artifacts/{id}"
@@ -324,6 +332,7 @@ class ContainerArtifact(Artifact):
         self.image_id = image_id
 
         self._require("registry_url", "repository", "image_id")
+        self._compute_digest()
 
 class MavenArtifact(Artifact):
     def __init__(self, model, id, parent,
@@ -336,6 +345,7 @@ class MavenArtifact(Artifact):
         self.version = version
 
         self._require("repository_url", "group_id", "artifact_id", "version")
+        self._compute_digest()
 
 class FileArtifact(Artifact):
     def __init__(self, model, id, parent, type=None, url=None, **kwargs):
@@ -344,6 +354,7 @@ class FileArtifact(Artifact):
         self.url = url
 
         self._require("url")
+        self._compute_digest()
 
 class RpmArtifact(Artifact):
     def __init__(self, model, id, parent,
@@ -356,6 +367,7 @@ class RpmArtifact(Artifact):
         self.release = release
 
         self._require("repository_url", "name", "version", "release")
+        self._compute_digest()
 
 Artifact._subclasses_by_type = {
     "container": ContainerArtifact,
