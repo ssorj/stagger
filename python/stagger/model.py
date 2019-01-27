@@ -179,6 +179,9 @@ class _Model:
 
             tag.mark_modified()
 
+class BadDataError(Exception):
+    pass
+
 class _ModelObject:
     def __init__(self, model, id, parent):
         self._model = model
@@ -192,6 +195,16 @@ class _ModelObject:
     @property
     def path(self):
         return self._path_template.format(parent_path=self._parent.path, id=self._id)
+
+    def _require(self, *field_names):
+        missing = list()
+
+        for name in field_names:
+            if getattr(self, name, None) is None:
+                missing.append(name)
+
+        if missing:
+            raise BadDataError(f"{self} is missing required values: {', '.join(missing)}")
 
     def data(self):
         fields = dict()
@@ -232,7 +245,7 @@ class _ModelObject:
 class _Repo(_ModelObject):
     _child_vars = ["branches"]
 
-    def __init__(self, model, id, branches={}):
+    def __init__(self, model, id, branches={}, **kwargs):
         super().__init__(model, id, None)
 
         self.branches = dict()
@@ -249,7 +262,7 @@ class _Branch(_ModelObject):
     _path_template = "{parent_path}/branches/{id}"
     _child_vars = ["tags"]
 
-    def __init__(self, model, id, parent, tags={}):
+    def __init__(self, model, id, parent, tags={}, **kwargs):
         super().__init__(model, id, parent)
 
         self.tags = dict()
@@ -263,18 +276,19 @@ class _Tag(_ModelObject):
     _child_vars = ["artifacts"]
 
     def __init__(self, model, id, parent,
-                 build_id=None, build_url=None, commit_id=None, files_url=None, artifacts={}):
+                 build_id=None, build_url=None, commit_id=None, artifacts={}, **kwargs):
         super().__init__(model, id, parent)
 
         self.build_id = build_id
         self.build_url = build_url
         self.commit_id = commit_id
-        self.files_url = files_url
         self.artifacts = dict()
 
         for artifact_id, artifact_data in artifacts.items():
             artifact = _Artifact.create(self._model, artifact_id, self, **artifact_data)
             self.artifacts[artifact_id] = artifact
+
+        self._require("build_id")
 
 class _Artifact(_ModelObject):
     _path_template = "{parent_path}/artifacts/{id}"
@@ -285,7 +299,7 @@ class _Artifact(_ModelObject):
         try:
             type = artifact_data["type"]
         except KeyError:
-            raise TypeError("Artifact data has no type field")
+            raise BadDataError("Artifact data has no type field")
 
         cls = _Artifact._subclasses_by_type[type]
         obj = cls(model, id, parent, **artifact_data)
@@ -299,17 +313,18 @@ class _Artifact(_ModelObject):
 
 class _ContainerArtifact(_Artifact):
     def __init__(self, model, id, parent,
-                 type=None, registry_url=None, repository=None, image_id=None):
+                 type=None, registry_url=None, repository=None, image_id=None, **kwargs):
         super().__init__(model, id, parent, type)
 
         self.registry_url = registry_url
         self.repository = repository
         self.image_id = image_id
 
+        self._require("registry_url", "repository", "image_id")
+
 class _MavenArtifact(_Artifact):
     def __init__(self, model, id, parent,
-                 type=None, repository_url=None, group_id=None, artifact_id=None,
-                 version=None):
+                 type=None, repository_url=None, group_id=None, artifact_id=None, version=None, **kwargs):
         super().__init__(model, id, parent, type)
 
         self.repository_url = repository_url
@@ -317,21 +332,27 @@ class _MavenArtifact(_Artifact):
         self.artifact_id = artifact_id
         self.version = version
 
+        self._require("repository_url", "group_id", "artifact_id", "version")
+
 class _FileArtifact(_Artifact):
-    def __init__(self, model, id, parent, type=None, url=None):
+    def __init__(self, model, id, parent, type=None, url=None, **kwargs):
         super().__init__(model, id, parent, type)
 
         self.url = url
 
+        self._require("url")
+
 class _RpmArtifact(_Artifact):
     def __init__(self, model, id, parent,
-                 type=None, repository_url=None, name=None, version=None, release=None):
+                 type=None, repository_url=None, name=None, version=None, release=None, **kwargs):
         super().__init__(model, id, parent, type)
 
         self.repository_url = repository_url
         self.name = name
         self.version = version
         self.release = release
+
+        self._require("repository_url", "name", "version", "release")
 
 _Artifact._subclasses_by_type = {
     "container": _ContainerArtifact,

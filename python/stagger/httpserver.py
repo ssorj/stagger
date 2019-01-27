@@ -28,6 +28,8 @@ import starlette.staticfiles as _staticfiles
 import uuid as _uuid
 import uvicorn as _uvicorn
 
+from .model import BadDataError
+
 _log = _logging.getLogger("httpserver")
 
 class _HttpServer:
@@ -103,7 +105,7 @@ class _AsgiHandler:
             response = await self.process(request)
         except KeyError as e:
             response = _NotFoundResponse(e)
-        except TypeError as e:
+        except BadDataError as e:
             response = _BadDataResponse(e)
         except _json_decoder.JSONDecodeError as e:
             response = _BadJsonResponse(e)
