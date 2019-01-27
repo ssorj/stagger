@@ -29,6 +29,7 @@ repository.  It contains a set of named branches.
 <pre>
 {
     "source_url": "&lt;source-url&gt;",
+    "job_url": "&lt;job-url&gt;",
     "branches": {
         "&lt;branch-id&gt;": { /* Branch fields */ },
         "&lt;branch-id&gt;": { /* Branch fields */ },

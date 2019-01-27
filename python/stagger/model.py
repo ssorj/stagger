@@ -245,9 +245,11 @@ class ModelObject:
 class Repo(ModelObject):
     _child_vars = ["branches"]
 
-    def __init__(self, model, id, branches={}, **kwargs):
+    def __init__(self, model, id, source_url=None, job_url=None, branches={}, **kwargs):
         super().__init__(model, id, None)
 
+        self.source_url = None
+        self.job_url = None
         self.branches = dict()
 
         for branch_id, branch_data in branches.items():
