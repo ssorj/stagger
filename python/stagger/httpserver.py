@@ -74,7 +74,7 @@ class _NotFoundResponse(_responses.PlainTextResponse):
         super().__init__(f"Not found: {exception}", 404)
 
 class _NotModifiedResponse(_responses.PlainTextResponse):
-    def __init__(self, exception):
+    def __init__(self):
         super().__init__("Not modified", 304)
 
 class _BadJsonResponse(_responses.PlainTextResponse):
@@ -120,7 +120,7 @@ class _AsgiHandler:
         assert response is not None
 
         if server_etag is not None:
-            response.headers["ETag"] = f'"{server_etag}"'
+            response.headers["ETag"] = server_etag
 
         await response(receive, send)
 
@@ -134,7 +134,7 @@ class _AsgiHandler:
         pass
 
 class _IndexHandler(_AsgiHandler):
-    _etag = str(_uuid.uuid4())
+    _etag = f'"{str(_uuid.uuid4())}"'
 
     def etag(self, request):
         return self._etag
@@ -144,20 +144,20 @@ class _IndexHandler(_AsgiHandler):
 
 class _ModelHandler(_AsgiHandler):
     def etag(self, request):
-        return str(request.app.model.revision)
+        return f'"{str(request.app.model.revision)}"'
 
     async def render(self, request):
         return _responses.JSONResponse(request.app.model.data())
 
 class _ModelObjectHandler(_AsgiHandler):
     def etag(self, request):
-        return str(request.object._digest)
+        return f'"{str(request.object._digest)}"'
 
     def process_head(self, request):
         assert request.method == "HEAD"
 
         response = _responses.Response("")
-        response.headers["ETag"] = f'"{self.etag(request)}"'
+        response.headers["ETag"] = self.etag(request)
 
         return response
 
