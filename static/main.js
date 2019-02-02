@@ -154,6 +154,35 @@ class Stagger {
         gesso.createElement(td, "code", command);
     }
 
+    renderArtifactCoordinates(parent, data) {
+        let coords;
+
+        switch (data["type"]) {
+        case "container":
+            coords = `${data["repository"]}/${data["image_id"]}`;
+            break;
+        case "file":
+            try {
+                coords = new URL(data["url"]).pathname;
+                coords = coords.substr(coords.lastIndexOf("/") + 1);
+            } catch {
+                coords = "-"
+            }
+
+            break;
+        case "maven":
+            coords = `${data["group_id"]}:${data["artifact_id"]}:${data["version"]}`;
+            break;
+        case "rpm":
+            coords = `${data["name"]}-${data["version"]}-${data["release"]}`;
+            break;
+        default:
+            coords = "-";
+        }
+
+        gesso.createText(parent, coords);
+    }
+
     renderMainView(parent) {
         let repos = this.data["repos"];
 
@@ -230,6 +259,29 @@ class Stagger {
         this.createOptionalLink(td, data["commit_url"], data["commit_id"], "-");
 
         this.createField(props, "Updated", "-");
+
+        gesso.createElement(parent, "h2", "Artifacts");
+
+        let table = gesso.createElement(parent, "table");
+        let thead = gesso.createElement(table, "thead");
+        let tbody = gesso.createElement(table, "tbody");
+
+        let tr = gesso.createElement(thead, "tr");
+
+        th = gesso.createElement(tr, "th", "Artifact");
+        th = gesso.createElement(tr, "th", "Type");
+        th = gesso.createElement(tr, "th", "Coordinates");
+
+        for (let artifactId of Object.keys(data["artifacts"])) {
+            let artifact = data["artifacts"][artifactId];
+
+            tr = gesso.createElement(tbody, "tr");
+            td = gesso.createElement(tr, "td", artifactId);
+            td = gesso.createElement(tr, "td", artifact["type"]);
+
+            td = gesso.createElement(tr, "td");
+            this.renderArtifactCoordinates(td, artifact);
+        }
 
         gesso.createElement(parent, "h2", "Example commands");
 

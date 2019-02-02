@@ -65,6 +65,7 @@ h1 {
 
 h2 {
     font-size: 1.3em;
+    margin-top: 1.3em;
 }
 
 a {
@@ -135,13 +136,17 @@ th {
     font-style: normal;
 }
 
-table.fields td {
+table.fields td,
+table.fields th {
     border: none;
+    padding: 0.3em 0.3em 0.3em 0;
+}
+
+table.fields td {
     width: 85%;
 }
 
 table.fields th {
-    border: none;
     width: 15%;
 }
 
