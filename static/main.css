@@ -154,7 +154,7 @@ hr {
     border-bottom: 1px solid #ddd;
 }
 
-pre {
+pre, pre.hljs {
     background-color: rgb(247, 247, 247);
     overflow: auto;
     padding: 1em;

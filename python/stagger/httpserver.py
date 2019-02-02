@@ -53,6 +53,7 @@ class HttpServer:
                            endpoint=ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             _routing.Route("/", endpoint=WebAppHandler, methods=["GET", "HEAD"]),
             _routing.Route("/tags/{repo_id}/{branch_id}/{tag_id}", endpoint=WebAppHandler, methods=["GET", "HEAD"]),
+            _routing.Route("/artifacts/{repo_id}/{branch_id}/{tag_id}/{artifact_id}", endpoint=WebAppHandler, methods=["GET", "HEAD"]),
             _routing.Mount("", app=_staticfiles.StaticFiles(directory=static_dir)),
         ]
 
