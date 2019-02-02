@@ -191,7 +191,57 @@ class Stagger {
 
         this.renderHeader(parent, tag, navLinks);
 
-        gesso.createElement(parent, "pre", JSON.stringify(data, null, 4));
+        gesso.createElement(parent, "h2", "API");
+
+        let nav = gesso.createElement(parent, "nav");
+        let path = `/api/repos/${repoId}/branches/${branchId}/tags/${tagId}`
+
+        gesso.createLink(nav, path, `GET ${path}`);
+        gesso.createDiv(nav, null, `PUT ${path}`);
+        gesso.createDiv(nav, null, `DELETE ${path}`);
+        gesso.createDiv(nav, null, `HEAD ${path}`);
+
+        gesso.createElement(parent, "h2", "Curl commands");
+
+        let origin = new URL(window.location.href).origin;
+        let commands = `# GET
+
+curl --fail ${origin}${path}
+
+# PUT
+
+curl --fail -X PUT ${origin}${path} -d @- <<EOF
+<data>
+EOF
+
+# DELETE
+
+curl --fail -X DELETE ${origin}${path}
+
+# HEAD
+
+curl --fail -I ${origin}${path}
+`;
+
+        if (hljs) {
+            commands = hljs.highlight("sh", commands).value;
+        }
+
+        let pre = gesso.createElement(parent, "pre");
+        pre.innerHTML = commands;
+
+        gesso.createElement(parent, "h2", "Data");
+
+        let json = JSON.stringify(data, null, 4);
+
+        if (hljs) {
+            json = hljs.highlight("json", json).value;
+        }
+
+        json = json.replace(/"(https?:\/\/.*?)"/g, "\"<a href=\"$1\">$1</a>\"");
+
+        pre = gesso.createElement(parent, "pre");
+        pre.innerHTML = json;
 
         this.renderFooter(parent);
     }

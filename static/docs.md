@@ -8,11 +8,10 @@ Stagger is a service for tagging software builds and describing the
 resulting build artifacts.  A Stagger tag binds a well-known name to a
 concrete, installable version of your software.
 
-Stagger helps you connect CI/CD pipelines.  It enables two key
-capabilities:
+Stagger helps you connect CI jobs.  It enables two key operations:
 
-* Fetching the latest artifacts produced by another pipeline job
-* Triggering pipeline jobs when a dependency is updated
+* Fetching the latest artifacts produced by another CI job
+* Triggering CI jobs when a dependency is updated
 
 #### Contents
 
