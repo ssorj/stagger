@@ -1,10 +1,18 @@
-# Stagger docs
+<div id="content" markdown="1">
 
-[Home](/index.html)
+<nav class="context"><a href="/">Stagger</a> &nbsp;&gt;&nbsp; Documentation</nav>
+
+# Documentation
 
 Stagger is a service for tagging software builds and describing the
 resulting build artifacts.  A Stagger tag binds a well-known name to a
 concrete, installable version of your software.
+
+Stagger helps you connect CI/CD pipelines.  It enables two key
+capabilities:
+
+* Fetching the latest artifacts produced by another pipeline job
+* Triggering pipeline jobs when a dependency is updated
 
 #### Contents
 
@@ -283,3 +291,5 @@ repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt; -> { /* Branch fields */ }
 repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt; -> { /* Tag fields */ }
 repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt; -> { /* Artifact fields */ }
 </pre>
+
+</div>

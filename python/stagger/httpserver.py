@@ -42,25 +42,26 @@ class HttpServer:
 
         routes = [
             _routing.Route("/api/data",
-                           endpoint=_ModelHandler, methods=["GET", "HEAD"]),
+                           endpoint=ModelHandler, methods=["GET", "HEAD"]),
             _routing.Route("/api/repos/{repo_id}",
-                           endpoint=_RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+                           endpoint=RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             _routing.Route("/api/repos/{repo_id}/branches/{branch_id}",
-                           endpoint=_BranchHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+                           endpoint=BranchHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             _routing.Route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}",
-                           endpoint=_TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+                           endpoint=TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
             _routing.Route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}/artifacts/{artifact_id}",
-                           endpoint=_ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
-            _routing.Route("/", endpoint=_IndexHandler, methods=["GET", "HEAD"]),
+                           endpoint=ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"]),
+            _routing.Route("/", endpoint=WebAppHandler, methods=["GET", "HEAD"]),
+            _routing.Route("/tags/{repo_id}/{branch_id}/{tag_id}", endpoint=WebAppHandler, methods=["GET", "HEAD"]),
             _routing.Mount("", app=_staticfiles.StaticFiles(directory=static_dir)),
         ]
 
-        self._router = _Router(self.app, routes)
+        self.router = Router(self.app, routes)
 
     def run(self):
-        _uvicorn.run(self._router, host=self.host, port=self.port, log_level="info")
+        _uvicorn.run(self.router, host=self.host, port=self.port, log_level="info")
 
-class _Router(_routing.Router):
+class Router(_routing.Router):
     def __init__(self, app, routes):
         super().__init__(routes)
         self.app = app
@@ -69,23 +70,27 @@ class _Router(_routing.Router):
         scope["app"] = self.app
         return super().__call__(scope)
 
-class _NotFoundResponse(_responses.PlainTextResponse):
+class NotFoundResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
         super().__init__(f"Not found: {exception}", 404)
 
-class _NotModifiedResponse(_responses.PlainTextResponse):
+class NotModifiedResponse(_responses.PlainTextResponse):
     def __init__(self):
         super().__init__("Not modified", 304)
 
-class _BadJsonResponse(_responses.PlainTextResponse):
+class BadJsonResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
         super().__init__(f"Bad request: Failure decoding JSON: {exception}", 400)
 
-class _BadDataResponse(_responses.PlainTextResponse):
+class BadDataResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
         super().__init__(f"Bad request: Illegal data: {exception}", 400)
 
-class _AsgiHandler:
+class CompressedJsonResponse(_responses.Response):
+    def __init__(self, content):
+        super().__init__(content, headers={"Content-Encoding": "gzip"}, media_type="application/json")
+
+class AsgiHandler:
     def __init__(self, scope):
         self.scope = scope
 
@@ -96,11 +101,11 @@ class _AsgiHandler:
         try:
             response = await self.process(request)
         except KeyError as e:
-            response = _NotFoundResponse(e)
+            response = NotFoundResponse(e)
         except BadDataError as e:
-            response = _BadDataResponse(e)
+            response = BadDataResponse(e)
         except _json_decoder.JSONDecodeError as e:
-            response = _BadJsonResponse(e)
+            response = BadJsonResponse(e)
 
         if response is not None:
             await response(receive, send)
@@ -111,7 +116,7 @@ class _AsgiHandler:
 
         if client_etag is not None and server_etag is not None:
             if client_etag == server_etag:
-                response = _NotModifiedResponse()
+                response = NotModifiedResponse()
                 await response(receive, send)
                 return
 
@@ -133,7 +138,7 @@ class _AsgiHandler:
     async def render(self, request):
         pass
 
-class _IndexHandler(_AsgiHandler):
+class WebAppHandler(AsgiHandler):
     _etag = f'"{str(_uuid.uuid4())}"'
 
     def etag(self, request):
@@ -142,14 +147,21 @@ class _IndexHandler(_AsgiHandler):
     async def render(self, request):
         return _responses.FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
 
-class _ModelHandler(_AsgiHandler):
+class ModelHandler(AsgiHandler):
     def etag(self, request):
         return f'"{str(request.app.model.revision)}"'
 
     async def render(self, request):
-        return _responses.JSONResponse(request.app.model.data())
+        accept_encoding = request.headers.get("Accept-Encoding")
 
-class _ModelObjectHandler(_AsgiHandler):
+        if accept_encoding is not None and "gzip" in accept_encoding:
+            response = CompressedJsonResponse(request.app.model._compressed_data)
+        else:
+            response = _responses.JSONResponse(request.app.model.data())
+
+        return response
+
+class ModelObjectHandler(AsgiHandler):
     def etag(self, request):
         return f'"{str(request.object._digest)}"'
 
@@ -162,9 +174,16 @@ class _ModelObjectHandler(_AsgiHandler):
         return response
 
     async def render(self, request):
-        return _responses.JSONResponse(request.object.data())
+        accept_encoding = request.headers.get("Accept-Encoding")
 
-class _RepoHandler(_ModelObjectHandler):
+        if accept_encoding is not None and "gzip" in accept_encoding:
+            response = CompressedJsonResponse(request.object._compressed_data)
+        else:
+            response = _responses.JSONResponse(request.object.data())
+
+        return response
+
+class RepoHandler(ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
@@ -183,7 +202,7 @@ class _RepoHandler(_ModelObjectHandler):
         if request.method == "HEAD":
             return self.process_head(request)
 
-class _BranchHandler(_ModelObjectHandler):
+class BranchHandler(ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
@@ -203,7 +222,7 @@ class _BranchHandler(_ModelObjectHandler):
         if request.method == "HEAD":
             return self.process_head(request)
 
-class _TagHandler(_ModelObjectHandler):
+class TagHandler(ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
@@ -224,7 +243,7 @@ class _TagHandler(_ModelObjectHandler):
         if request.method == "HEAD":
             return self.process_head(request)
 
-class _ArtifactHandler(_ModelObjectHandler):
+class ArtifactHandler(ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]

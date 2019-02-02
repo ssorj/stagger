@@ -18,6 +18,7 @@
 #
 
 import binascii as _binascii
+import gzip as _gzip
 import json as _json
 import logging as _logging
 import os as _os
@@ -34,9 +35,11 @@ class Model:
         self.repos = dict()
         self.revision = 0
 
+        self._compressed_data = None
+
         self._lock = _threading.Lock()
         self._modified = _threading.Event()
-        self._save_thread = _SaveThread(self)
+        self._save_thread = SaveThread(self)
 
     def load(self):
         if not _os.path.exists(self.data_file):
@@ -54,12 +57,18 @@ class Model:
 
             self.revision = data["revision"]
 
+        self._save_computed_values()
+
     def start(self):
         self._save_thread.start()
 
     def mark_modified(self):
         self.revision += 1
+        self._save_computed_values()
         self._modified.set()
+
+    def _save_computed_values(self):
+        self._compressed_data = _gzip.compress(self.json().encode("utf-8"))
 
     def save(self):
         with self._lock:
@@ -67,7 +76,7 @@ class Model:
             data = self.data()
 
             with open(temp, "w") as f:
-                _json.dump(data, f, sort_keys=True)
+                _json.dump(data, f)
 
             _os.rename(temp, self.data_file)
 
@@ -192,6 +201,7 @@ class ModelObject:
         self._id = id
         self._parent = parent
         self._digest = None
+        self._compressed_data = None
 
         missing = list()
 
@@ -207,7 +217,7 @@ class ModelObject:
                 setattr(self, name, fields.get(name, None))
 
         self._init_children(**fields)
-        self._compute_digest()
+        self._save_computed_values()
 
     def _init_children(self, **fields):
         assert not self._child_fields
@@ -249,14 +259,17 @@ class ModelObject:
         self._model.mark_modified()
 
     def _mark_modified(self):
-        self._compute_digest()
+        self._save_computed_values()
         self._model.app.amqp_server.fire_object_update(self)
 
         if self._parent is not None:
             self._parent._mark_modified()
 
-    def _compute_digest(self):
-        self._digest = _binascii.crc32(self.json().encode("utf-8"))
+    def _save_computed_values(self):
+        json = self.json().encode("utf-8")
+
+        self._compressed_data = _gzip.compress(json)
+        self._digest = _binascii.crc32(json)
 
 class Repo(ModelObject):
     _fields = ["source_url", "job_url", "branches"]
@@ -335,7 +348,7 @@ Artifact._subclasses_by_type = {
     "rpm": RpmArtifact,
 }
 
-class _SaveThread(_threading.Thread):
+class SaveThread(_threading.Thread):
     def __init__(self, model):
         super().__init__()
 

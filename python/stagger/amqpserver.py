@@ -38,7 +38,7 @@ class AmqpServer(_threading.Thread):
         self.host = host
         self.port = port
 
-        self.container = _reactor.Container(_Handler(self))
+        self.container = _reactor.Container(MessagingHandler(self))
 
         self.events = _reactor.EventInjector()
         self.container.selectable(self.events)
@@ -54,9 +54,9 @@ class AmqpServer(_threading.Thread):
         event = _reactor.ApplicationEvent("object_update", subject=obj)
         self.events.trigger(event)
 
-class _Handler(_handlers.MessagingHandler):
+class MessagingHandler(_handlers.MessagingHandler):
     def __init__(self, server):
-        super(_Handler, self).__init__()
+        super().__init__()
 
         self.server = server
         self.subscriptions = _collections.defaultdict(dict)

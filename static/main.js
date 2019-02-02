@@ -25,104 +25,174 @@ const gesso = new Gesso();
 
 class Stagger {
     constructor() {
-        this.state = {
-            query: {
-            },
-            data: null,
-            dataFetchState: null,
-            renderTime: null,
+        this.request = {
+            path: null,
+            query: {}
         };
 
+        this.renderTime = null;
+        this.data = null;
+
         window.addEventListener("statechange", (event) => {
-            this.renderPage();
+            this.render();
         });
 
         window.addEventListener("load", (event) => {
+            this.request.path = window.location.pathname;
+
             if (window.location.search) {
-                this.state.query = gesso.parseQueryString(window.location.search);
+                this.request.query = gesso.parseQueryString(window.location.search);
             }
 
-            this.state.dataFetchState = gesso.fetchPeriodically("/api/data", (data) => {
-                this.state.data = data;
-                window.dispatchEvent(new Event("statechange"));
-            });
+            window.history.replaceState(this.request, "", window.location.href);
+
+            this.fetchDataPeriodically();
 
             //window.setInterval(() => { this.checkFreshness }, 60 * 1000);
         });
 
         window.addEventListener("popstate", (event) => {
-            this.state.query = event.state;
+            this.request = event.state;
             window.dispatchEvent(new Event("statechange"));
         });
     }
 
-    renderPage() {
-        console.log("Rendering page");
+    fetchDataPeriodically() {
+        gesso.fetchPeriodically("/api/data", (data) => {
+            this.data = data;
+            window.dispatchEvent(new Event("statechange"));
+        });
+    }
 
-        this.state.renderTime = new Date().getTime();
+    createStateChangeLink(parent, href, options) {
+        let elem = gesso.createLink(parent, href, options);
 
-        let elem = gesso.createDiv(null, "#content");
-        let repos = this.state.data["repos"];
+        elem.addEventListener("click", (event) => {
+            event.preventDefault();
+
+            this.request.path = new URL(event.target.href).pathname;
+            this.fetchDataPeriodically();
+
+            window.history.pushState(this.request, "", event.target.href);
+            window.dispatchEvent(new Event("statechange"));
+        });
+
+        return elem;
+    }
+
+    createOptionalLink(parent, href, text, nullValue) {
+        if (!text) {
+            text = nullValue;
+        }
+
+        if (href) {
+            return gesso.createLink(parent, href, text);
+        } else {
+            return gesso.createText(parent, text);
+        }
+    }
+
+    createCommitLink(parent, href, id, nullValue) {
+        if (id && id.length > 8) {
+            id = id.substring(0, 7);
+        }
+
+        return this.createOptionalLink(parent, href, id, nullValue);
+    }
+
+    render() {
+        console.log(`Rendering ${this.request.path}`);
+
+        this.renderTime = new Date().getTime();
+
+        let content = gesso.createDiv(null, "#content");
+
+        if (this.request.path.startsWith("/tags/")) {
+            this.renderTagView(content);
+        } else {
+            this.renderMainView(content);
+        }
+
+        gesso.replaceElement($("#content"), content);
+    }
+
+    renderHeader(parent, title, navLinks) {
+        let nav = gesso.createElement(parent, "nav", {"class": "context"});
+
+        for (let [href, title] of navLinks.slice(0, -1)) {
+            this.createStateChangeLink(nav, href, title);
+            gesso.createText(nav, " \xa0>\xa0 ");
+        }
+
+        gesso.createText(nav, navLinks[navLinks.length - 1][1]);
+
+        gesso.createElement(parent, "h1", title);
+    }
+
+    renderFooter(parent) {
+        let elem = gesso.createElement(parent, "nav", {"class": "footer"});
+
+        gesso.createLink(elem, "/docs.html", "Documentation");
+    }
+
+    renderMainView(parent) {
+        let repos = this.data["repos"];
+
+        this.renderHeader(parent, "Tags", [["/", "Stagger"]]);
+
+        let table = gesso.createElement(parent, "table");
+        let thead = gesso.createElement(table, "thead");
+        let tbody = gesso.createElement(table, "tbody");
+
+        let tr = gesso.createElement(tbody, "tr");
+        let th;
+
+        th = gesso.createElement(tr, "th", "Tag");
+        th = gesso.createElement(tr, "th", "Build");
+        th = gesso.createElement(tr, "th", "Commit");
+        th = gesso.createElement(tr, "th", "Updated");
 
         for (let repoId of Object.keys(repos)) {
             let repo = repos[repoId];
-            let repoDataUrl = `/pretty.html?url=/api/repos/${repoId}`
-            let repoElem = gesso.createDiv(elem, "repo");
-
-            gesso.createDiv(repoElem, "repo-id", repoId);
-            gesso.createLink(repoElem, repoDataUrl,
-                             {"text": "Data", "class": "repo-data"});
 
             for (let branchId of Object.keys(repo["branches"])) {
                 let branch = repo["branches"][branchId];
-                
+
                 for (let tagId of Object.keys(branch["tags"])) {
-                    let tag = branch["tags"][tagId];
-                    let tagDataUrl = `/pretty.html?url=/api/repos/${repoId}/branches/${branchId}/tags/${tagId}`
-                    let tagElem = gesso.createDiv(repoElem, "tag");
+                    let tag = `${repoId}/${branchId}/${tagId}`
+                    let tagData = this.data["repos"][repoId]["branches"][branchId]["tags"][tagId];
+                    let tagViewPath = `/tags/${repoId}/${branchId}/${tagId}`
 
-                    gesso.createDiv(tagElem, "tag-id", `${branchId}/${tagId}`);
-                    gesso.createLink(tagElem, tagDataUrl,
-                                     {"text": "Data", "class": "tag-data"});
-                    gesso.createLink(tagElem, tag["build_url"],
-                                     {"text": tag["build_id"], "class": "tag-build"});
+                    let tr = gesso.createElement(tbody, "tr");
+                    let td;
 
-                    for (let artifactId of Object.keys(tag["artifacts"])) {
-                        let artifact = tag["artifacts"][artifactId];
-                        let artifactDataUrl = `/pretty.html?url=/api/repos/${repoId}/branches/${branchId}/tags/${tagId}/artifacts/${artifactId}`
-                        let artifactElem = gesso.createDiv(tagElem, "artifact");
+                    td = gesso.createElement(tr, "td");
+                    this.createStateChangeLink(td, tagViewPath, tag);
 
-                        let artifactUrl = artifactDataUrl;
-                        let coords;
+                    td = gesso.createElement(tr, "td");
+                    this.createOptionalLink(td, tagData["build_url"], tagData["build_id"], "-");
 
-                        switch (artifact["type"]) {
-                        case "container":
-                            coords = `${artifact["repository"]}/${artifact["image_id"]}`;
-                            artifactUrl = artifact["registry_url"];
-                            break;
-                        case "file":
-                            coords = artifact["url"];
-                            artifactUrl = artifact["url"];
-                        case "maven":
-                            coords = `${artifact["group_id"]}:${artifact["artifact_id"]}:${artifact["version"]}`;
-                            artifactUrl = artifact["repository_url"];
-                            break;
-                        case "rpm":
-                            coords = `${artifact["name"]}-${artifact["version"]}-${artifact["release"]}`;
-                            artifactUrl = artifact["repository_url"];
-                            break;
-                        }
+                    td = gesso.createElement(tr, "td");
+                    this.createCommitLink(td, tagData["commit_url"], tagData["commit_id"], "-");
 
-                        gesso.createDiv(artifactElem, "artifact-id", artifactId);
-                        gesso.createLink(artifactElem, artifactDataUrl,
-                                         {"text": "Data", "class": "artifact-data"});
-                        gesso.createLink(artifactElem, artifactUrl,
-                                         {"text": coords, "class": "artifact-coords"});
-                    }
+                    td = gesso.createElement(tr, "td", "-");
                 }
             }
         }
 
-        gesso.replaceElement($("#content"), elem);
+        this.renderFooter(parent);
+    }
+
+    renderTagView(parent) {
+        let [repoId, branchId, tagId] = this.request.path.split("/", 5).slice(2);
+        let tag = `${repoId}/${branchId}/${tagId}`
+        let navLinks = [["/", "Stagger"], [`/tags/${tag}`, `Tag '${tag}'`]];
+        let data = this.data["repos"][repoId]["branches"][branchId]["tags"][tagId];
+
+        this.renderHeader(parent, tag, navLinks);
+
+        gesso.createElement(parent, "pre", JSON.stringify(data, null, 4));
+
+        this.renderFooter(parent);
     }
 }
