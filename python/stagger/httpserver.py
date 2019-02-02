@@ -97,30 +97,29 @@ class AsgiHandler:
     async def __call__(self, receive, send):
         request = _requests.Request(self.scope, receive)
         request.app = request["app"]
+        error = None
 
         try:
-            response = await self.process(request)
+            obj, response = await self.process(request)
         except KeyError as e:
-            response = NotFoundResponse(e)
+            error = NotFoundResponse(e)
         except BadDataError as e:
-            response = BadDataResponse(e)
+            error = BadDataResponse(e)
         except _json_decoder.JSONDecodeError as e:
-            response = BadJsonResponse(e)
+            error = BadJsonResponse(e)
 
-        if response is not None:
-            await response(receive, send)
-            return
+        if error is not None:
+            return await error(receive, send)
 
-        server_etag = self.etag(request)
+        server_etag = self.etag(request, obj)
         client_etag = request.headers.get("If-None-Match")
 
-        if client_etag is not None and server_etag is not None:
-            if client_etag == server_etag:
-                response = NotModifiedResponse()
-                await response(receive, send)
-                return
-
-        response = await self.render(request)
+        if server_etag is not None and client_etag == server_etag:
+            response = NotModifiedResponse()
+        elif request.method == "HEAD":
+            response = _responses.Response("")
+        elif response is None:
+            response = await self.render(request, obj)
 
         assert response is not None
 
@@ -130,28 +129,28 @@ class AsgiHandler:
         await response(receive, send)
 
     async def process(self, request):
+        return None, None
+
+    def etag(self, request, obj):
         pass
 
-    def etag(self, request):
-        pass
-
-    async def render(self, request):
+    async def render(self, request, obj):
         pass
 
 class WebAppHandler(AsgiHandler):
     _etag = f'"{str(_uuid.uuid4())}"'
 
-    def etag(self, request):
+    def etag(self, request, obj):
         return self._etag
 
-    async def render(self, request):
+    async def render(self, request, obj):
         return _responses.FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
 
 class ModelHandler(AsgiHandler):
-    def etag(self, request):
+    def etag(self, request, obj):
         return f'"{str(request.app.model.revision)}"'
 
-    async def render(self, request):
+    async def render(self, request, obj):
         accept_encoding = request.headers.get("Accept-Encoding")
 
         if accept_encoding is not None and "gzip" in accept_encoding:
@@ -162,24 +161,17 @@ class ModelHandler(AsgiHandler):
         return response
 
 class ModelObjectHandler(AsgiHandler):
-    def etag(self, request):
-        return f'"{str(request.object._digest)}"'
+    def etag(self, request, obj):
+        if obj is not None:
+            return f'"{str(obj._digest)}"'
 
-    def process_head(self, request):
-        assert request.method == "HEAD"
-
-        response = _responses.Response("")
-        response.headers["ETag"] = self.etag(request)
-
-        return response
-
-    async def render(self, request):
+    async def render(self, request, obj):
         accept_encoding = request.headers.get("Accept-Encoding")
 
         if accept_encoding is not None and "gzip" in accept_encoding:
-            response = CompressedJsonResponse(request.object._compressed_data)
+            response = CompressedJsonResponse(obj._compressed_data)
         else:
-            response = _responses.JSONResponse(request.object.data())
+            response = _responses.JSONResponse(obj.data())
 
         return response
 
@@ -190,17 +182,14 @@ class RepoHandler(ModelObjectHandler):
 
         if request.method == "PUT":
             repo_data = await request.json()
-            model.put_repo(repo_id, repo_data)
-            return _responses.Response("OK\n")
+            repo = model.put_repo(repo_id, repo_data)
+            return repo, _responses.Response("OK\n")
 
         if request.method == "DELETE":
             model.delete_repo(repo_id)
-            return _responses.Response("OK\n")
+            return None, _responses.Response("OK\n")
 
-        request.object = model.repos[repo_id]
-
-        if request.method == "HEAD":
-            return self.process_head(request)
+        return model.repos[repo_id], None
 
 class BranchHandler(ModelObjectHandler):
     async def process(self, request):
@@ -210,17 +199,14 @@ class BranchHandler(ModelObjectHandler):
 
         if request.method == "PUT":
             branch_data = await request.json()
-            model.put_branch(repo_id, branch_id, branch_data)
-            return _responses.Response("OK\n")
+            branch = model.put_branch(repo_id, branch_id, branch_data)
+            return branch, _responses.Response("OK\n")
 
         if request.method == "DELETE":
             model.delete_branch(repo_id, branch_id)
-            return _responses.Response("OK\n")
+            return None, _responses.Response("OK\n")
 
-        request.object = model.repos[repo_id].branches[branch_id]
-
-        if request.method == "HEAD":
-            return self.process_head(request)
+        return model.repos[repo_id].branches[branch_id], None
 
 class TagHandler(ModelObjectHandler):
     async def process(self, request):
@@ -231,17 +217,14 @@ class TagHandler(ModelObjectHandler):
 
         if request.method == "PUT":
             tag_data = await request.json()
-            model.put_tag(repo_id, branch_id, tag_id, tag_data)
-            return _responses.Response("OK\n")
+            tag = model.put_tag(repo_id, branch_id, tag_id, tag_data)
+            return tag, _responses.Response("OK\n")
 
         if request.method == "DELETE":
             model.delete_tag(repo_id, branch_id, tag_id)
-            return _responses.Response("OK\n")
+            return None, _responses.Response("OK\n")
 
-        request.object = model.repos[repo_id].branches[branch_id].tags[tag_id]
-
-        if request.method == "HEAD":
-            return self.process_head(request)
+        return model.repos[repo_id].branches[branch_id].tags[tag_id], None
 
 class ArtifactHandler(ModelObjectHandler):
     async def process(self, request):
@@ -253,14 +236,11 @@ class ArtifactHandler(ModelObjectHandler):
 
         if request.method == "PUT":
             artifact_data = await request.json()
-            model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
-            return _responses.Response("OK\n")
+            artifact = model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
+            return artifact, _responses.Response("OK\n")
 
         if request.method == "DELETE":
             model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
-            return _responses.Response("OK\n")
+            return None, _responses.Response("OK\n")
 
-        request.object = model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]
-
-        if request.method == "HEAD":
-            return self.process_head(request)
+        return model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id], None

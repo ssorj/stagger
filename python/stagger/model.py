@@ -101,6 +101,8 @@ class Model:
             self.repos[repo_id] = repo
             repo.mark_modified()
 
+        return repo
+
     def delete_repo(self, repo_id):
         with self._lock:
             del self.repos[repo_id]
@@ -118,6 +120,8 @@ class Model:
             repo.branches[branch_id] = branch
 
             branch.mark_modified()
+
+        return branch
 
     def delete_branch(self, repo_id, branch_id):
         with self._lock:
@@ -143,6 +147,8 @@ class Model:
             branch.tags[tag_id] = tag
 
             tag.mark_modified()
+
+        return tag
 
     def delete_tag(self, repo_id, branch_id, tag_id):
         with self._lock:
@@ -177,6 +183,8 @@ class Model:
             tag.artifacts[artifact_id] = artifact
 
             artifact.mark_modified()
+
+        return artifact
 
     def delete_artifact(self, repo_id, branch_id, tag_id, artifact_id):
         with self._lock:
