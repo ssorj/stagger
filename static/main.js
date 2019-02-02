@@ -213,15 +213,15 @@ class Stagger {
         let url = new URL(window.location.href);
         let apiPath = `/api/repos/${repoId}/branches/${branchId}/tags/${tagId}`
         let apiUrl = `${url.origin}${apiPath}`
-        let amqpPath = `repos/${repoId}/branches/${branchId}/tags/${tagId}`
-        let amqpUrl = `amqp://${url.hostname}:5672/${amqpPath}`
+        let eventPath = `events/${repoId}/${branchId}/${tagId}`
+        let eventUrl = `amqp://${url.hostname}:5672/${eventPath}`
 
         gesso.createElement(parent, "h2", "Properties");
 
         let props = gesso.createElement(parent, "table", {"class": "fields"});
 
         this.renderUrlField(props, "API URL", apiUrl);
-        this.renderUrlField(props, "AMQP URL", amqpUrl);
+        this.renderUrlField(props, "Event URL", eventUrl);
 
         let [th, td] = this.createField(props, "Build");
         this.createOptionalLink(td, data["build_url"], data["build_id"], "-");
@@ -239,7 +239,7 @@ class Stagger {
         this.renderCommandField(commands, "HTTP PUT", `curl -X PUT ${url.origin}${apiPath} -d @data.json`);
         this.renderCommandField(commands, "HTTP DELETE", `curl -X DELETE ${url.origin}${apiPath}`)
         this.renderCommandField(commands, "HTTP HEAD", `curl --head ${url.origin}${apiPath}`)
-        this.renderCommandField(commands, "AMQP", `qreceive ${amqpUrl}`)
+        this.renderCommandField(commands, "AMQP", `qreceive ${eventUrl}`)
 
         gesso.createElement(parent, "h2", "Data");
 

@@ -93,7 +93,7 @@ class Model:
         }
 
     def json(self):
-        return _json.dumps(self.data(), sort_keys=True)
+        return _json.dumps(self.data())
 
     def put_repo(self, repo_id, repo_data):
         with self._lock:
@@ -223,11 +223,15 @@ class ModelObject:
         assert not self._child_fields
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.path})"
+        return f"{self.__class__.__name__}({self.api_path})"
 
     @property
-    def path(self):
-        return self._path_template.format(parent_path=self._parent.path, id=self._id)
+    def api_path(self):
+        return self._api_path_template.format(parent_path=self._parent.api_path, id=self._id)
+
+    @property
+    def event_path(self):
+        return f"{self._parent.event_path}/{self._id}"
 
     def data(self):
         fields = dict()
@@ -252,7 +256,7 @@ class ModelObject:
         return data
 
     def json(self):
-        return _json.dumps(self.data(), sort_keys=True)
+        return _json.dumps(self.data())
 
     def mark_modified(self):
         self._mark_modified()
@@ -283,11 +287,15 @@ class Repo(ModelObject):
             self.branches[branch_id] = branch
 
     @property
-    def path(self):
-        return f"repos/{self._id}"
+    def api_path(self):
+        return f"api/repos/{self._id}"
+
+    @property
+    def event_path(self):
+        return f"events/{self._id}"
 
 class Branch(ModelObject):
-    _path_template = "{parent_path}/branches/{id}"
+    _api_path_template = "{parent_path}/branches/{id}"
     _fields = ["tags"]
     _child_fields = ["tags"]
 
@@ -299,7 +307,7 @@ class Branch(ModelObject):
             self.tags[tag_id] = tag
 
 class Tag(ModelObject):
-    _path_template = "{parent_path}/tags/{id}"
+    _api_path_template = "{parent_path}/tags/{id}"
     _fields = ["build_id", "build_url", "commit_id", "commit_url", "artifacts"]
     _child_fields = ["artifacts"]
 
@@ -311,7 +319,7 @@ class Tag(ModelObject):
             self.artifacts[artifact_id] = artifact
 
 class Artifact(ModelObject):
-    _path_template = "{parent_path}/artifacts/{id}"
+    _api_path_template = "{parent_path}/artifacts/{id}"
 
     @staticmethod
     def create(model, id, parent, **artifact_data):

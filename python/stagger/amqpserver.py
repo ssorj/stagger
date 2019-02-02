@@ -17,28 +17,23 @@
 #
 
 import collections as _collections
-import os as _os
 import logging as _logging
 import proton as _proton
 import proton.handlers as _handlers
 import proton.reactor as _reactor
-import uuid as _uuid
-import shutil as _shutil
-import subprocess as _subprocess
-import sys as _sys
-import tempfile as _tempfile
 import threading as _threading
 
 _log = _logging.getLogger("amqpserver")
 
 class AmqpServer(_threading.Thread):
-    def __init__(self, app, host="0.0.0.0", port=5672):
+    def __init__(self, app, host="", port=5672):
         super().__init__()
 
         self.host = host
         self.port = port
 
         self.container = _reactor.Container(MessagingHandler(self))
+        self.container.container_id = f"stagger-{self.container.container_id}"
 
         self.events = _reactor.EventInjector()
         self.container.selectable(self.events)
@@ -95,6 +90,6 @@ class MessagingHandler(_handlers.MessagingHandler):
         message.inferred = True
         message.body = obj.json().encode("utf-8")
 
-        for sender in self.subscriptions[obj.path].values():
+        for sender in self.subscriptions[obj.event_path].values():
             if sender.credit > 0:
                 sender.send(message)
