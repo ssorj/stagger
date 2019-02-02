@@ -72,19 +72,23 @@ class Router(_routing.Router):
 
 class NotFoundResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
-        super().__init__(f"Not found: {exception}", 404)
+        super().__init__(f"Not found: {exception}\n", 404)
 
 class NotModifiedResponse(_responses.PlainTextResponse):
     def __init__(self):
-        super().__init__("Not modified", 304)
+        super().__init__("Not modified\n", 304)
 
 class BadJsonResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
-        super().__init__(f"Bad request: Failure decoding JSON: {exception}", 400)
+        super().__init__(f"Bad request: Failure decoding JSON: {exception}\n", 400)
 
 class BadDataResponse(_responses.PlainTextResponse):
     def __init__(self, exception):
-        super().__init__(f"Bad request: Illegal data: {exception}", 400)
+        super().__init__(f"Bad request: Illegal data: {exception}\n", 400)
+
+class OkResponse(_responses.Response):
+    def __init__(self):
+        super().__init__("OK\n")
 
 class CompressedJsonResponse(_responses.Response):
     def __init__(self, content):
@@ -154,11 +158,9 @@ class ModelHandler(AsgiHandler):
         accept_encoding = request.headers.get("Accept-Encoding")
 
         if accept_encoding is not None and "gzip" in accept_encoding:
-            response = CompressedJsonResponse(request.app.model._compressed_data)
+            return CompressedJsonResponse(request.app.model._compressed_data)
         else:
-            response = _responses.JSONResponse(request.app.model.data())
-
-        return response
+            return _responses.JSONResponse(request.app.model.data())
 
 class ModelObjectHandler(AsgiHandler):
     def etag(self, request, obj):
@@ -166,14 +168,14 @@ class ModelObjectHandler(AsgiHandler):
             return f'"{str(obj._digest)}"'
 
     async def render(self, request, obj):
+        assert obj is not None
+
         accept_encoding = request.headers.get("Accept-Encoding")
 
         if accept_encoding is not None and "gzip" in accept_encoding:
-            response = CompressedJsonResponse(obj._compressed_data)
+            return CompressedJsonResponse(obj._compressed_data)
         else:
-            response = _responses.JSONResponse(obj.data())
-
-        return response
+            return _responses.JSONResponse(obj.data())
 
 class RepoHandler(ModelObjectHandler):
     async def process(self, request):
@@ -183,11 +185,11 @@ class RepoHandler(ModelObjectHandler):
         if request.method == "PUT":
             repo_data = await request.json()
             repo = model.put_repo(repo_id, repo_data)
-            return repo, _responses.Response("OK\n")
+            return repo, OkResponse()
 
         if request.method == "DELETE":
             model.delete_repo(repo_id)
-            return None, _responses.Response("OK\n")
+            return None, OkResponse()
 
         return model.repos[repo_id], None
 
@@ -200,11 +202,11 @@ class BranchHandler(ModelObjectHandler):
         if request.method == "PUT":
             branch_data = await request.json()
             branch = model.put_branch(repo_id, branch_id, branch_data)
-            return branch, _responses.Response("OK\n")
+            return branch, OkResponse()
 
         if request.method == "DELETE":
             model.delete_branch(repo_id, branch_id)
-            return None, _responses.Response("OK\n")
+            return None, OkResponse()
 
         return model.repos[repo_id].branches[branch_id], None
 
@@ -218,11 +220,11 @@ class TagHandler(ModelObjectHandler):
         if request.method == "PUT":
             tag_data = await request.json()
             tag = model.put_tag(repo_id, branch_id, tag_id, tag_data)
-            return tag, _responses.Response("OK\n")
+            return tag, OkResponse()
 
         if request.method == "DELETE":
             model.delete_tag(repo_id, branch_id, tag_id)
-            return None, _responses.Response("OK\n")
+            return None, OkResponse()
 
         return model.repos[repo_id].branches[branch_id].tags[tag_id], None
 
@@ -237,10 +239,10 @@ class ArtifactHandler(ModelObjectHandler):
         if request.method == "PUT":
             artifact_data = await request.json()
             artifact = model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
-            return artifact, _responses.Response("OK\n")
+            return artifact, OkResponse()
 
         if request.method == "DELETE":
             model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
-            return None, _responses.Response("OK\n")
+            return None, OkResponse()
 
         return model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id], None
