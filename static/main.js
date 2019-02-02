@@ -205,14 +205,14 @@ class Stagger {
     renderTagView(parent) {
         let [repoId, branchId, tagId] = this.request.path.split("/", 5).slice(2);
         let tag = `${repoId}/${branchId}/${tagId}`
-        let navLinks = [["/", "Stagger"], [`/tags/${tag}`, `Tag '${tag}'`]];
+        let navLinks = [["/", "Stagger"], [`/tags/${tag}`, `Tag ${tag}`]];
         let data = this.data["repos"][repoId]["branches"][branchId]["tags"][tagId];
 
         this.renderHeader(parent, tag, navLinks);
 
         let url = new URL(window.location.href);
-        let apiPath = `/api/repos/${repoId}/branches/${branchId}/tags/${tagId}`
-        let apiUrl = `${url.origin}${apiPath}`
+        let apiPath = `api/repos/${repoId}/branches/${branchId}/tags/${tagId}`
+        let apiUrl = `${url.origin}/${apiPath}`
         let eventPath = `events/${repoId}/${branchId}/${tagId}`
         let eventUrl = `amqp://${url.hostname}:5672/${eventPath}`
 
@@ -231,15 +231,15 @@ class Stagger {
 
         this.createField(props, "Updated", "-");
 
-        gesso.createElement(parent, "h2", "Commands");
+        gesso.createElement(parent, "h2", "Example commands");
 
         let commands = gesso.createElement(parent, "table", {"class": "fields"});
 
-        this.renderCommandField(commands, "HTTP GET", `curl ${url.origin}${apiPath}`)
-        this.renderCommandField(commands, "HTTP PUT", `curl -X PUT ${url.origin}${apiPath} -d @data.json`);
-        this.renderCommandField(commands, "HTTP DELETE", `curl -X DELETE ${url.origin}${apiPath}`)
-        this.renderCommandField(commands, "HTTP HEAD", `curl --head ${url.origin}${apiPath}`)
-        this.renderCommandField(commands, "AMQP", `qreceive ${eventUrl}`)
+        this.renderCommandField(commands, "Get data", `curl ${apiUrl}`)
+        this.renderCommandField(commands, "Create or update", `curl -X PUT ${apiUrl} -d @data.json`);
+        this.renderCommandField(commands, "Delete", `curl -X DELETE ${apiUrl}`)
+        this.renderCommandField(commands, "Check for updates", `curl --head -H 'If-None-Match: <etag>' ${apiUrl}`);
+        this.renderCommandField(commands, "Listen for events", `qreceive ${eventUrl}`)
 
         gesso.createElement(parent, "h2", "Data");
 
