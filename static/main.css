@@ -59,8 +59,12 @@ h2 {
     font-weight: 400;
 }
 
-h4 {
-    font-size: 0.9em;
+h1 {
+    font-size: 1.8em;
+}
+
+h2 {
+    font-size: 1.3em;
 }
 
 a {
@@ -131,16 +135,22 @@ th {
     font-style: normal;
 }
 
+table.fields td {
+    border: none;
+    width: 85%;
+}
+
+table.fields th {
+    border: none;
+    width: 15%;
+}
+
 hr {
     border-bottom: 1px solid #ddd;
 }
 
-code,
 pre {
     background-color: rgb(247, 247, 247);
-}
-
-pre {
     overflow: auto;
     padding: 1em;
 }
@@ -159,65 +169,6 @@ body:last-child {
 
 span.notice {
     font-style: italic;
-}
-
-div.repo div {
-    vertical-align: top;
-}
-
-div.repo a {
-    vertical-align: top;
-}
-
-div.repo {
-    margin-bottom: 2em;
-}
-
-div.repo-id {
-    display: inline-block;
-    font-weight: 600;
-    width: 24em;
-    margin-bottom: 1em;
-}
-
-a.repo-data {
-    display: inline-block;
-    width: 8em;
-}
-
-div.tag-id {
-    display: inline-block;
-    width: 24em;
-    margin-bottom: 1em;
-}
-
-a.tag-data {
-    display: inline-block;
-    width: 8em;
-}
-
-a.tag-build {
-    display: inline-block;
-}
-
-div.artifact-id {
-    display: inline-block;
-    width: 24em;
-    margin-bottom: 1em;
-    padding-left: 2em;
-}
-
-a.artifact-data {
-    display: inline-block;
-    width: 8em;
-}
-
-a.artifact-coords {
-    display: inline-block;
-}
-
-p.footer {
-    margin-top: 2em;
 }
 
 pre.data {

@@ -100,6 +100,14 @@ class Stagger {
         return this.createOptionalLink(parent, href, id, nullValue);
     }
 
+    createField(parent, name, value) {
+        let tr = gesso.createElement(parent, "tr");
+        let th = gesso.createElement(tr, "th", name);
+        let td = gesso.createElement(tr, "td", value);
+
+        return [th, td];
+    }
+
     render() {
         console.log(`Rendering ${this.request.path}`);
 
@@ -135,16 +143,27 @@ class Stagger {
         gesso.createLink(elem, "/docs.html", "Documentation");
     }
 
+    renderUrlField(parent, name, url) {
+        let [th, td] = this.createField(parent, name);
+        let code = gesso.createElement(td, "code");
+        gesso.createLink(code, url, url);
+    }
+
+    renderCommandField(parent, name, command) {
+        let [th, td] = this.createField(parent, name);
+        gesso.createElement(td, "code", command);
+    }
+
     renderMainView(parent) {
         let repos = this.data["repos"];
 
-        this.renderHeader(parent, "Tags", [["/", "Stagger"]]);
+        gesso.createElement(parent, "h1", "Stagger");
 
         let table = gesso.createElement(parent, "table");
         let thead = gesso.createElement(table, "thead");
         let tbody = gesso.createElement(table, "tbody");
 
-        let tr = gesso.createElement(tbody, "tr");
+        let tr = gesso.createElement(thead, "tr");
         let th;
 
         th = gesso.createElement(tr, "th", "Tag");
@@ -191,44 +210,36 @@ class Stagger {
 
         this.renderHeader(parent, tag, navLinks);
 
-        gesso.createElement(parent, "h2", "API");
+        let url = new URL(window.location.href);
+        let apiPath = `/api/repos/${repoId}/branches/${branchId}/tags/${tagId}`
+        let apiUrl = `${url.origin}${apiPath}`
+        let amqpPath = `repos/${repoId}/branches/${branchId}/tags/${tagId}`
+        let amqpUrl = `amqp://${url.hostname}:5672/${amqpPath}`
 
-        let nav = gesso.createElement(parent, "nav");
-        let path = `/api/repos/${repoId}/branches/${branchId}/tags/${tagId}`
+        gesso.createElement(parent, "h2", "Properties");
 
-        gesso.createLink(nav, path, `GET ${path}`);
-        gesso.createDiv(nav, null, `PUT ${path}`);
-        gesso.createDiv(nav, null, `DELETE ${path}`);
-        gesso.createDiv(nav, null, `HEAD ${path}`);
+        let props = gesso.createElement(parent, "table", {"class": "fields"});
 
-        gesso.createElement(parent, "h2", "Curl commands");
+        this.renderUrlField(props, "API URL", apiUrl);
+        this.renderUrlField(props, "AMQP URL", amqpUrl);
 
-        let origin = new URL(window.location.href).origin;
-        let commands = `# GET
+        let [th, td] = this.createField(props, "Build");
+        this.createOptionalLink(td, data["build_url"], data["build_id"], "-");
 
-curl --fail ${origin}${path}
+        [th, td] = this.createField(props, "Commit");
+        this.createOptionalLink(td, data["commit_url"], data["commit_id"], "-");
 
-# PUT
+        this.createField(props, "Updated", "-");
 
-curl --fail -X PUT ${origin}${path} -d @- <<EOF
-<data>
-EOF
+        gesso.createElement(parent, "h2", "Commands");
 
-# DELETE
+        let commands = gesso.createElement(parent, "table", {"class": "fields"});
 
-curl --fail -X DELETE ${origin}${path}
-
-# HEAD
-
-curl --fail -I ${origin}${path}
-`;
-
-        if (hljs) {
-            commands = hljs.highlight("sh", commands).value;
-        }
-
-        let pre = gesso.createElement(parent, "pre");
-        pre.innerHTML = commands;
+        this.renderCommandField(commands, "HTTP GET", `curl ${url.origin}${apiPath}`)
+        this.renderCommandField(commands, "HTTP PUT", `curl -X PUT ${url.origin}${apiPath} -d @data.json`);
+        this.renderCommandField(commands, "HTTP DELETE", `curl -X DELETE ${url.origin}${apiPath}`)
+        this.renderCommandField(commands, "HTTP HEAD", `curl --head ${url.origin}${apiPath}`)
+        this.renderCommandField(commands, "AMQP", `qreceive ${amqpUrl}`)
 
         gesso.createElement(parent, "h2", "Data");
 
@@ -240,7 +251,7 @@ curl --fail -I ${origin}${path}
 
         json = json.replace(/"(https?:\/\/.*?)"/g, "\"<a href=\"$1\">$1</a>\"");
 
-        pre = gesso.createElement(parent, "pre");
+        let pre = gesso.createElement(parent, "pre");
         pre.innerHTML = json;
 
         this.renderFooter(parent);
