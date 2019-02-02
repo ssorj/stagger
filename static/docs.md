@@ -10,7 +10,7 @@ concrete, installable version of your software.
 
 Stagger helps you connect CI jobs.  It enables two key operations:
 
-* Fetching the latest artifacts produced by another CI job
+* Locating the latest artifacts produced by another CI job
 * Triggering CI jobs when a dependency is updated
 
 #### Contents
