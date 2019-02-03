@@ -189,9 +189,6 @@ class Stagger {
         gesso.createLink(div, "/docs.html", "Documentation");
     }
 
-    renderFooter(parent) {
-    }
-
     renderMainView(parent) {
         let repos = this.data["repos"];
 
@@ -222,8 +219,6 @@ class Stagger {
         }
 
         gesso.createTable(parent, headings, rows, {"class": "tags"});
-
-        this.renderFooter(parent);
     }
 
     renderTagView(parent) {
@@ -234,10 +229,9 @@ class Stagger {
         this.renderHeader(parent, tag, [["/", "Stagger"], `Tag ${tag}`]);
 
         let url = new URL(window.location.href);
-        let apiPath = `api/repos/${repoId}/branches/${branchId}/tags/${tagId}`
-        let apiUrl = `${url.origin}/${apiPath}`
-        let eventPath = `events/${repoId}/${branchId}/${tagId}`
-        let eventUrl = `amqp://${url.hostname}:5672/${eventPath}`
+        let path = `repos/${repoId}/branches/${branchId}/tags/${tagId}`
+        let apiUrl = `${url.origin}/api/${path}`
+        let eventUrl = `amqp://${url.hostname}:5672/events/${path}`
 
         let props = [
             ["API URL", gesso.createLink(null, apiUrl, apiUrl)],
@@ -251,7 +245,7 @@ class Stagger {
 
         gesso.createElement(parent, "h2", "Artifacts");
 
-        let headings = ["Artifact", "Type", "Coordinates"];
+        let headings = ["Artifact", "Type", "Coordinates", "Updated"];
         let rows = [];
 
         for (let artifactId of Object.keys(data["artifacts"])) {
@@ -260,11 +254,12 @@ class Stagger {
             rows.push([
                 this.createStateChangeLink(null, `/artifacts/${tag}/${artifactId}`, artifactId),
                 artifact["type"],
-                this.createArtifactCoordinates(null, artifact)
+                this.createArtifactCoordinates(null, artifact),
+                this.formatTime(data["update_time"])
             ]);
         }
 
-        gesso.createTable(parent, headings, rows);
+        gesso.createTable(parent, headings, rows, {"class": "artifacts"});
 
         gesso.createElement(parent, "h2", "Example commands");
 
@@ -281,8 +276,6 @@ class Stagger {
         gesso.createElement(parent, "h2", "Data");
 
         this.createJsonBlock(parent, data);
-
-        this.renderFooter(parent);
     }
 
     renderArtifactView(parent) {
@@ -293,10 +286,9 @@ class Stagger {
         this.renderHeader(parent, artifactId, [["/", "Stagger"], [`/tags/${tag}`, `Tag ${tag}`], `Artifact ${artifactId}`]);
 
         let url = new URL(window.location.href);
-        let apiPath = `api/repos/${repoId}/branches/${branchId}/tags/${tagId}/artifacts/${artifactId}`
-        let apiUrl = `${url.origin}/${apiPath}`
-        let eventPath = `events/${repoId}/${branchId}/${tagId}/${artifactId}`
-        let eventUrl = `amqp://${url.hostname}:5672/${eventPath}`
+        let path = `repos/${repoId}/branches/${branchId}/tags/${tagId}/artifacts/${artifactId}`
+        let apiUrl = `${url.origin}/api/${path}`
+        let eventUrl = `amqp://${url.hostname}:5672/events/${path}`
 
         let props = [
             ["API URL", gesso.createLink(null, apiUrl, apiUrl)],
@@ -352,7 +344,5 @@ class Stagger {
         gesso.createElement(parent, "h2", "Data");
 
         this.createJsonBlock(parent, data);
-
-        this.renderFooter(parent);
     }
 }
