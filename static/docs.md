@@ -6,7 +6,7 @@ title: Documentation - Stagger
 
 <header>
   <div>
-    <nav class="context"><a href="/">Stagger</a> &nbsp;&gt;&nbsp; Documentation</nav>
+    <nav class="context"><a href="/">Stagger</a> &nbsp;&#x232a;&nbsp; Documentation</nav>
     <h1>Documentation</h1>
   </div>
 </header>

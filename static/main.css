@@ -119,7 +119,7 @@ table {
 
 td,
 th {
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     padding: 0.5em 0;
     vertical-align: top;
     text-align: left;
@@ -127,6 +127,7 @@ th {
 
 td em,
 th {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.4);
     font-weight: 300;
     font-style: normal;
 }
@@ -190,7 +191,7 @@ div#content {
 header {
     display: flex;
     justify-content: space-between;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.4);
     margin-bottom: 1.2em;
 }
 

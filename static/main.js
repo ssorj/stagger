@@ -181,7 +181,7 @@ class Stagger {
 
             for (let [href, title] of navLinks.slice(0, -1)) {
                 this.createStateChangeLink(nav, href, title);
-                gesso.createText(nav, " \xa0>\xa0 ");
+                gesso.createText(nav, " \xa0\u232a\xa0 ");
             }
 
             gesso.createText(nav, navLinks[navLinks.length - 1]);

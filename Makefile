@@ -70,9 +70,9 @@ run: build
 build-image:
 	sudo docker build -t ssorj/stagger .
 
-# .PHONY: test-image
-# test-image:
-# 	sudo docker run --rm --user 9999 ssorj/stagger -it /app/.local/bin/quiver-test
+.PHONY: test-image
+test-image:
+	sudo docker run --rm --user 9999 -it ssorj/stagger /app/.local/bin/stagger-test
 
 .PHONY: run-image
 run-image:
