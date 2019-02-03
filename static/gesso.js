@@ -33,9 +33,9 @@ Element.prototype.$$ = function () {
 };
 
 class Gesso {
-    constructor() {
-        this._minFetchInterval = 500;
-        this._maxFetchInterval = 60 * 1000;
+    constructor({minFetchInterval = 500, maxFetchInterval = 10 * 60 * 1000} = {}) {
+        this._minFetchInterval = minFetchInterval;
+        this._maxFetchInterval = maxFetchInterval;
         this._fetchStates = new Map(); // By path
     }
 
@@ -268,7 +268,32 @@ class Gesso {
             let tr = this.createElement(tbody, "tr");
 
             for (let cell of row) {
-                this.createElement(tr, "td", cell);
+                let td = this.createElement(tr, "td");
+
+                if (cell instanceof Node) {
+                    td.appendChild(cell);
+                } else {
+                    this.createText(td, cell);
+                }
+            }
+        }
+
+        return elem;
+    }
+
+    createFieldTable(parent, fields, options) {
+        let elem = this.createElement(parent, "table", options);
+        let tbody = this.createElement(elem, "tbody");
+
+        for (let field of fields) {
+            let tr = this.createElement(tbody, "tr");
+            let th = this.createElement(tr, "th", field[0]);
+            let td = this.createElement(tr, "td");
+
+            if (field[1] instanceof Node) {
+                td.appendChild(field[1]);
+            } else {
+                this.createText(td, field[1]);
             }
         }
 

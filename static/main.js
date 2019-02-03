@@ -100,12 +100,44 @@ class Stagger {
         return this.createOptionalLink(parent, href, id, nullValue);
     }
 
-    createField(parent, name, value) {
-        let tr = gesso.createElement(parent, "tr");
-        let th = gesso.createElement(tr, "th", name);
-        let td = gesso.createElement(tr, "td", value);
+    createJsonBlock(parent, data) {
+        let json = JSON.stringify(data, null, 4);
+        let pre = gesso.createElement(parent, "pre", {"text": json, "class": "json"});
 
-        return [th, td];
+        if (hljs) {
+            hljs.highlightBlock(pre);
+        }
+
+        return pre;
+    }
+
+    createArtifactCoordinates(parent, data) {
+        let coords;
+
+        switch (data["type"]) {
+        case "container":
+            coords = `${data["repository"]}/${data["image_id"]}`;
+            break;
+        case "file":
+            try {
+                coords = new URL(data["url"]).pathname;
+                coords = coords.substr(coords.lastIndexOf("/") + 1);
+            } catch {
+                coords = "-"
+            }
+
+            break;
+        case "maven":
+            coords = `${data["group_id"]}:${data["artifact_id"]}:${data["version"]}`;
+            break;
+        case "rpm":
+            coords = `${data["name"]}-${data["version"]}-${data["release"]}`;
+            break;
+        default:
+            coords = "-";
+        }
+
+        return gesso.createText(parent, coords);
     }
 
     render() {
@@ -148,70 +180,13 @@ class Stagger {
         gesso.createLink(elem, "/docs.html", "Documentation");
     }
 
-    renderUrlField(parent, name, url) {
-        let [th, td] = this.createField(parent, name);
-        gesso.createLink(td, url, url);
-    }
-
-    renderCommandField(parent, name, command) {
-        let [th, td] = this.createField(parent, name);
-        gesso.createElement(td, "code", command);
-    }
-
-    renderArtifactCoordinates(parent, data) {
-        let coords;
-
-        switch (data["type"]) {
-        case "container":
-            coords = `${data["repository"]}/${data["image_id"]}`;
-            break;
-        case "file":
-            try {
-                coords = new URL(data["url"]).pathname;
-                coords = coords.substr(coords.lastIndexOf("/") + 1);
-            } catch {
-                coords = "-"
-            }
-
-            break;
-        case "maven":
-            coords = `${data["group_id"]}:${data["artifact_id"]}:${data["version"]}`;
-            break;
-        case "rpm":
-            coords = `${data["name"]}-${data["version"]}-${data["release"]}`;
-            break;
-        default:
-            coords = "-";
-        }
-
-        gesso.createText(parent, coords);
-    }
-
-    renderJsonData(parent, data) {
-        let json = JSON.stringify(data, null, 4);
-        let pre = gesso.createElement(parent, "pre", {"text": json, "class": "json"});
-
-        if (hljs) {
-            hljs.highlightBlock(pre);
-        }
-    }
-
     renderMainView(parent) {
         let repos = this.data["repos"];
 
         gesso.createElement(parent, "h1", "Stagger");
 
-        let table = gesso.createElement(parent, "table");
-        let thead = gesso.createElement(table, "thead");
-        let tbody = gesso.createElement(table, "tbody");
-
-        let tr = gesso.createElement(thead, "tr");
-        let th;
-
-        th = gesso.createElement(tr, "th", "Tag");
-        th = gesso.createElement(tr, "th", "Build");
-        th = gesso.createElement(tr, "th", "Commit");
-        th = gesso.createElement(tr, "th", "Updated");
+        let headings = ["Tag", "Build", "Commit", "Updated"];
+        let rows = [];
 
         for (let repoId of Object.keys(repos)) {
             let repo = repos[repoId];
@@ -224,21 +199,17 @@ class Stagger {
                     let tagData = this.data["repos"][repoId]["branches"][branchId]["tags"][tagId];
                     let tagViewPath = `/tags/${repoId}/${branchId}/${tagId}`
 
-                    let tr = gesso.createElement(tbody, "tr");
-
-                    let td = gesso.createElement(tr, "td");
-                    this.createStateChangeLink(td, tagViewPath, tag);
-
-                    td = gesso.createElement(tr, "td");
-                    this.createOptionalLink(td, tagData["build_url"], tagData["build_id"], "-");
-
-                    td = gesso.createElement(tr, "td");
-                    this.createCommitLink(td, tagData["commit_url"], tagData["commit_id"], "-");
-
-                    td = gesso.createElement(tr, "td", "-");
+                    rows.push([
+                        this.createStateChangeLink(null, tagViewPath, tag),
+                        this.createOptionalLink(null, tagData["build_url"], tagData["build_id"], "-"),
+                        this.createCommitLink(null, tagData["commit_url"], tagData["commit_id"], "-"),
+                        "-"
+                    ]);
                 }
             }
         }
+
+        gesso.createTable(parent, headings, rows);
 
         this.renderFooter(parent);
     }
@@ -258,58 +229,48 @@ class Stagger {
 
         gesso.createElement(parent, "h2", "Properties");
 
-        let props = gesso.createElement(parent, "table", {"class": "fields"});
+        let props = [
+            ["API URL", gesso.createLink(null, apiUrl, apiUrl)],
+            ["Event URL", gesso.createLink(null, eventUrl, eventUrl)],
+            ["Build", this.createOptionalLink(null, data["build_url"], data["build_id"], "-")],
+            ["Commit", this.createOptionalLink(null, data["commit_url"], data["commit_id"], "-")],
+            ["Updated", "-"]
+        ];
 
-        this.renderUrlField(props, "API URL", apiUrl);
-        this.renderUrlField(props, "Event URL", eventUrl);
-
-        let [th, td] = this.createField(props, "Build");
-        this.createOptionalLink(td, data["build_url"], data["build_id"], "-");
-
-        [th, td] = this.createField(props, "Commit");
-        this.createOptionalLink(td, data["commit_url"], data["commit_id"], "-");
-
-        this.createField(props, "Updated", "-");
+        gesso.createFieldTable(parent, props, {"class": "fields"});
 
         gesso.createElement(parent, "h2", "Artifacts");
 
-        let table = gesso.createElement(parent, "table");
-        let thead = gesso.createElement(table, "thead");
-        let tbody = gesso.createElement(table, "tbody");
-
-        let tr = gesso.createElement(thead, "tr");
-
-        th = gesso.createElement(tr, "th", "Artifact");
-        th = gesso.createElement(tr, "th", "Type");
-        th = gesso.createElement(tr, "th", "Coordinates");
+        let headings = ["Artifacts", "Type", "Coordinates"];
+        let rows = [];
 
         for (let artifactId of Object.keys(data["artifacts"])) {
             let artifact = data["artifacts"][artifactId];
 
-            tr = gesso.createElement(tbody, "tr");
-
-            td = gesso.createElement(tr, "td");
-            this.createStateChangeLink(td, `/artifacts/${tag}/${artifactId}`, artifactId);
-
-            gesso.createElement(tr, "td", artifact["type"]);
-
-            td = gesso.createElement(tr, "td");
-            this.renderArtifactCoordinates(td, artifact);
+            rows.push([
+                this.createStateChangeLink(null, `/artifacts/${tag}/${artifactId}`, artifactId),
+                artifact["type"],
+                this.createArtifactCoordinates(null, artifact)
+            ]);
         }
+
+        gesso.createTable(parent, headings, rows);
 
         gesso.createElement(parent, "h2", "Example commands");
 
-        let commands = gesso.createElement(parent, "table", {"class": "fields"});
+        let commands = [
+            ["Get data", gesso.createElement(null, "code", `curl ${apiUrl}`)],
+            ["Create or update", gesso.createElement(null, "code", `curl -X PUT ${apiUrl} -d @data.json`)],
+            ["Delete", gesso.createElement(null, "code", `curl -X DELETE ${apiUrl}`)],
+            ["Check for updates", gesso.createElement(null, "code", `curl --head -H 'If-None-Match: <etag>' ${apiUrl}`)],
+            ["Listen for events", gesso.createElement(null, "code", `qreceive ${eventUrl}`)]
+        ];
 
-        this.renderCommandField(commands, "Get data", `curl ${apiUrl}`)
-        this.renderCommandField(commands, "Create or update", `curl -X PUT ${apiUrl} -d @data.json`);
-        this.renderCommandField(commands, "Delete", `curl -X DELETE ${apiUrl}`)
-        this.renderCommandField(commands, "Check for updates", `curl --head -H 'If-None-Match: <etag>' ${apiUrl}`);
-        this.renderCommandField(commands, "Listen for events", `qreceive ${eventUrl}`)
+        gesso.createFieldTable(parent, commands, {"class": "fields"});
 
         gesso.createElement(parent, "h2", "Data");
 
-        this.renderJsonData(parent, data);
+        this.createJsonBlock(parent, data);
 
         this.renderFooter(parent);
     }
@@ -329,51 +290,60 @@ class Stagger {
 
         gesso.createElement(parent, "h2", "Properties");
 
-        let props = gesso.createElement(parent, "table", {"class": "fields"});
-
-        this.renderUrlField(props, "API URL", apiUrl);
-        this.renderUrlField(props, "Event URL", eventUrl);
-
-        this.createField(props, "Type", data["type"]);
+        let props = [
+            ["API URL", gesso.createLink(null, apiUrl, apiUrl)],
+            ["Event URL", gesso.createLink(null, eventUrl, eventUrl)],
+            ["Type", data["type"]]
+        ];
 
         switch (data["type"]) {
         case "container":
-            this.renderUrlField(props, "Registry URL", data["registry_url"]);
-            this.createField(props, "Repository", data["repository"]);
-            this.createField(props, "Image", data["image_id"]);
+            props.push(...[
+                ["Registry URL", this.createOptionalLink(null, data["registry_url"], data["registry_url"])],
+                ["Repository", data["repository"]],
+                ["Image", data["image_id"]]
+            ]);
             break;
         case "file":
-            this.renderUrlField(props, "URL", data["url"]);
+            props.push(["URL", this.createOptionalLink(null, data["url"], data["url"])]);
             break;
         case "maven":
-            this.renderUrlField(props, "Repository URL", data["repository_url"]);
-            this.createField(props, "Group", data["group_id"]);
-            this.createField(props, "Artifact", data["artifact_id"]);
-            this.createField(props, "Version", data["version"]);
+            props.push(...[
+                ["Repository URL", this.createOptionalLink(null, data["repository_url"], data["repository_url"])],
+                ["Group", data["group_id"]],
+                ["Artifact", data["artifact_id"]],
+                ["Version", data["version"]]
+            ]);
             break;
         case "rpm":
-            this.renderUrlField(props, "Repository URL", data["repository_url"]);
-            this.createField(props, "Name", data["name"]);
-            this.createField(props, "Version", data["version"]);
-            this.createField(props, "Release", data["release"]);
+            props.push(...[
+                ["Repository URL", this.createOptionalLink(null, data["repository_url"], data["repository_url"])],
+                ["Name", data["name"]],
+                ["Version", data["version"]],
+                ["Release", data["release"]]
+            ]);
             break;
         }
 
-        this.createField(props, "Updated", "-");
+        props.push(["Updated", "-"]);
+
+        gesso.createFieldTable(parent, props, {"class": "fields"});
 
         gesso.createElement(parent, "h2", "Example commands");
 
-        let commands = gesso.createElement(parent, "table", {"class": "fields"});
+        let commands = [
+            ["Get data", gesso.createElement(null, "code", `curl ${apiUrl}`)],
+            ["Create or update", gesso.createElement(null, "code", `curl -X PUT ${apiUrl} -d @data.json`)],
+            ["Delete", gesso.createElement(null, "code", `curl -X DELETE ${apiUrl}`)],
+            ["Check for updates", gesso.createElement(null, "code", `curl --head -H 'If-None-Match: <etag>' ${apiUrl}`)],
+            ["Listen for events", gesso.createElement(null, "code", `qreceive ${eventUrl}`)]
+        ];
 
-        this.renderCommandField(commands, "Get data", `curl ${apiUrl}`)
-        this.renderCommandField(commands, "Create or update", `curl -X PUT ${apiUrl} -d @data.json`);
-        this.renderCommandField(commands, "Delete", `curl -X DELETE ${apiUrl}`)
-        this.renderCommandField(commands, "Check for updates", `curl --head -H 'If-None-Match: <etag>' ${apiUrl}`);
-        this.renderCommandField(commands, "Listen for events", `qreceive ${eventUrl}`)
+        gesso.createFieldTable(parent, commands, {"class": "fields"});
 
         gesso.createElement(parent, "h2", "Data");
 
-        this.renderJsonData(parent, data);
+        this.createJsonBlock(parent, data);
 
         this.renderFooter(parent);
     }
