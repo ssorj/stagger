@@ -23,6 +23,7 @@ import json as _json
 import logging as _logging
 import os as _os
 import threading as _threading
+import time as _time
 import traceback as _traceback
 
 _log = _logging.getLogger("model")
@@ -211,6 +212,11 @@ class ModelObject:
         self._digest = None
         self._compressed_data = None
 
+        try:
+            self.update_time = fields["update_time"]
+        except KeyError:
+            self.update_time = round(_time.time() * 1000)
+        
         missing = list()
 
         for name in self._required_fields:

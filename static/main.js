@@ -47,8 +47,6 @@ class Stagger {
             window.history.replaceState(this.request, "", window.location.href);
 
             this.fetchDataPeriodically();
-
-            //window.setInterval(() => { this.checkFreshness }, 60 * 1000);
         });
 
         window.addEventListener("popstate", (event) => {
@@ -80,9 +78,9 @@ class Stagger {
         return elem;
     }
 
-    createOptionalLink(parent, href, text, nullValue) {
+    createOptionalLink(parent, href, text, {none = "-"} = {}) {
         if (!text) {
-            text = nullValue;
+            text = none;
         }
 
         if (href) {
@@ -92,12 +90,12 @@ class Stagger {
         }
     }
 
-    createCommitLink(parent, href, id, nullValue) {
+    createCommitLink(parent, href, id, {none = "-"} = {}) {
         if (id && id.length > 8) {
             id = id.substring(0, 7);
         }
 
-        return this.createOptionalLink(parent, href, id, nullValue);
+        return this.createOptionalLink(parent, href, id, {none: none});
     }
 
     createJsonBlock(parent, data) {
@@ -138,6 +136,14 @@ class Stagger {
         }
 
         return gesso.createText(parent, coords);
+    }
+
+    formatTime(time, {none = "-"} = {}) {
+        if (!time) {
+            return none;
+        }
+
+        return new Date(time).toLocaleString();
     }
 
     render() {
@@ -201,9 +207,9 @@ class Stagger {
 
                     rows.push([
                         this.createStateChangeLink(null, tagViewPath, tag),
-                        this.createOptionalLink(null, tagData["build_url"], tagData["build_id"], "-"),
-                        this.createCommitLink(null, tagData["commit_url"], tagData["commit_id"], "-"),
-                        "-"
+                        this.createOptionalLink(null, tagData["build_url"], tagData["build_id"]),
+                        this.createCommitLink(null, tagData["commit_url"], tagData["commit_id"]),
+                        this.formatTime(tagData["update_time"])
                     ]);
                 }
             }
@@ -232,9 +238,9 @@ class Stagger {
         let props = [
             ["API URL", gesso.createLink(null, apiUrl, apiUrl)],
             ["Event URL", gesso.createLink(null, eventUrl, eventUrl)],
-            ["Build", this.createOptionalLink(null, data["build_url"], data["build_id"], "-")],
-            ["Commit", this.createOptionalLink(null, data["commit_url"], data["commit_id"], "-")],
-            ["Updated", "-"]
+            ["Build", this.createOptionalLink(null, data["build_url"], data["build_id"])],
+            ["Commit", this.createOptionalLink(null, data["commit_url"], data["commit_id"])],
+            ["Updated", this.formatTime(data["update_time"])]
         ];
 
         gesso.createFieldTable(parent, props, {"class": "fields"});
@@ -325,7 +331,7 @@ class Stagger {
             break;
         }
 
-        props.push(["Updated", "-"]);
+        props.push(["Updated", this.formatTime(data["update_time"])]);
 
         gesso.createFieldTable(parent, props, {"class": "fields"});
 
