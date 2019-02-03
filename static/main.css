@@ -216,3 +216,7 @@ table.artifacts th:nth-child(4),
 table.artifacts td:nth-child(4) {
     text-align: right;
 }
+
+p.note {
+    font-style: italic;
+}

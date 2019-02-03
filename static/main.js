@@ -53,6 +53,10 @@ class Stagger {
             this.request = event.state;
             window.dispatchEvent(new Event("statechange"));
         });
+
+        this.exampleCommandNote =
+            "Note: You may need to change the service host and port in these " +
+            "examples according to the details of your deployment.";
     }
 
     fetchDataPeriodically() {
@@ -271,7 +275,9 @@ class Stagger {
             ["Listen for updates", gesso.createElement(null, "code", `qreceive ${eventUrl}`)]
         ];
 
-        gesso.createFieldTable(parent, commands, {"class": "fields"});
+        gesso.createFieldTable(parent, commands, {"class": "fields commands"});
+
+        gesso.createElement(parent, "p", {"class": "note", "text": this.exampleCommandNote});
 
         gesso.createElement(parent, "h2", "Data");
 
@@ -339,7 +345,9 @@ class Stagger {
             ["Listen for updates", gesso.createElement(null, "code", `qreceive ${eventUrl}`)]
         ];
 
-        gesso.createFieldTable(parent, commands, {"class": "fields"});
+        gesso.createFieldTable(parent, commands, {"class": "fields commands"});
+
+        gesso.createElement(parent, "p", {"class": "note", "text": this.exampleCommandNote});
 
         gesso.createElement(parent, "h2", "Data");
 

@@ -22,7 +22,7 @@ Stagger helps you connect CI jobs.  It enables two key operations:
 
 #### Contents
 
-* [Entity fields and operations](#entity-fields-and-operations)
+* [Entities and operations](#entities-and-operations)
   * [Build repos](#build-repos)
   * [Build branches](#build-branches)
   * [Build tags](#build-tags)
@@ -35,7 +35,7 @@ Stagger helps you connect CI jobs.  It enables two key operations:
   * [Polling for updates with HTTP](#polling-for-updates-with-http)
   * [Listening for updates with AMQP](#listening-for-updates-with-amqp)
 
-## Entity fields and operations
+## Entities and operations
 
 ### Build repos
 
