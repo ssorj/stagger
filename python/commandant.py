@@ -208,7 +208,7 @@ class TestCommand(Command):
 
         for i in range(self.iterations):
             for module in self.test_modules:
-                session = _TestSession(self)
+                session = _TestSession(module)
                 sessions.append(session)
 
                 module.run_tests(session)
@@ -235,6 +235,8 @@ class _TestSession(object):
         self.skipped_tests = list()
         self.passed_tests = list()
         self.failed_tests = list()
+
+        self.test_timeout = self.module.command.test_timeout
 
 class _TestFunction(object):
     def __init__(self, module, function):
@@ -356,7 +358,7 @@ class _TestModule(object):
             self.command.notice("Running {0}", function)
 
             try:
-                with _Timer(self.command.test_timeout):
+                with _Timer(session.test_timeout):
                     function(session)
             except KeyboardInterrupt:
                 raise
