@@ -1,3 +1,7 @@
+---
+title: Documentation - Stagger
+---
+
 <div id="content" markdown="1">
 
 <header>
@@ -244,13 +248,13 @@ I recommend IDs corresponding to the RPM package name, as in
 ### Querying entities
 
 <pre>
-curl --fail &lt;service-url&gt/api/repos/example-repo/branches/master/tags/tested
+curl &lt;service&gt/api/repos/example-repo/branches/master/tags/tested
 </pre>
 
 ### Creating or updating entities
 
 <pre>
-curl --fail -X PUT &lt;service-url&gt/api/repos/example-repo/branches/master/tags/tested -d @- &lt;&lt;EOF
+curl -X PUT &lt;service&gt/api/repos/example-repo/branches/master/tags/tested -d @- &lt;&lt;EOF
 {
     "build_id": "999",
     "artifacts": {
@@ -269,7 +273,7 @@ EOF
 ### Deleting entities
 
 <pre>
-curl --fail -X DELETE &lt;service-url&gt/api/repos/example-repo/branches/master/tags/tested
+curl -X DELETE &lt;service&gt/api/repos/example-repo/branches/master/tags/tested
 </pre>
 
 ## Detecting entity updates
@@ -277,9 +281,14 @@ curl --fail -X DELETE &lt;service-url&gt/api/repos/example-repo/branches/master/
 ### Polling for updates with HTTP
 
 All of the HTTP endpoints support lightweight HEAD operations, and all
-responses contain an ETag header with a unique digest of the content.
-Use curl with an If-None-Match header to periodically test for
-changes.
+responses contain an ETag header with a digest of the content.  Use
+curl with an If-None-Match header to periodically test for changes.
+
+<pre>
+curl --head -H 'If-None-Match: &lt;etag&gt;' &lt;service&gt/api/repos/example-repo/branches/master/tags/tested
+
+# Returns "304 Not Modified" if unchanged
+</pre>
 
 ### Listening for updates with AMQP
 
@@ -288,10 +297,21 @@ branches, tags, or artifacts as AMQP messages.  They are published
 under the following addresses:
 
 <pre>
-repos/&lt;repo-id&gt; -> { /* Repo fields */ }
-repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt; -> { /* Branch fields */ }
-repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt; -> { /* Tag fields */ }
-repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt; -> { /* Artifact fields */ }
+events/repos/&lt;repo-id&gt; -> { /* Repo fields */ }
+events/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt; -> { /* Branch fields */ }
+events/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt; -> { /* Tag fields */ }
+events/repos/&lt;repo-id&gt;/branches/&lt;branch-id&gt;/tags/&lt;tag-id&gt;/artifacts/&lt;artifact-id&gt; -> { /* Artifact fields */ }
+</pre>
+
+The message payload is the same JSON data available from the
+corresponding REST API.
+
+You can use the qreceive command from
+[Qtools](https://github.com/ssorj/qtools) to listen from the command
+line.
+
+<pre>
+qreceive &lt;service&gt/events/repos/example-repo/branches/master/tags/tested
 </pre>
 
 </div>

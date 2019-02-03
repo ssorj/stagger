@@ -241,11 +241,11 @@ class ModelObject:
 
     @property
     def api_path(self):
-        return self._api_path_template.format(parent_path=self._parent.api_path, id=self._id)
+        return f"{self._parent.api_path}/{self._collection_name}/{self._id}"
 
     @property
     def event_path(self):
-        return f"{self._parent.event_path}/{self._id}"
+        return f"{self._parent.event_path}/{self._collection_name}/{self._id}"
 
     def data(self):
         fields = dict()
@@ -306,10 +306,10 @@ class Repo(ModelObject):
 
     @property
     def event_path(self):
-        return f"events/{self._id}"
+        return f"events/repos/{self._id}"
 
 class Branch(ModelObject):
-    _api_path_template = "{parent_path}/branches/{id}"
+    _collection_name = "branches"
     _fields = ["tags"]
     _child_fields = ["tags"]
 
@@ -321,7 +321,7 @@ class Branch(ModelObject):
             self.tags[tag_id] = tag
 
 class Tag(ModelObject):
-    _api_path_template = "{parent_path}/tags/{id}"
+    _collection_name = "tags"
     _fields = ["build_id", "build_url", "commit_id", "commit_url", "artifacts"]
     _child_fields = ["artifacts"]
 
@@ -333,7 +333,7 @@ class Tag(ModelObject):
             self.artifacts[artifact_id] = artifact
 
 class Artifact(ModelObject):
-    _api_path_template = "{parent_path}/artifacts/{id}"
+    _collection_name = "artifacts"
 
     @staticmethod
     def create(model, id, parent, **artifact_data):

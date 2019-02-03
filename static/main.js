@@ -197,7 +197,7 @@ class Stagger {
         let headings = ["Tag", "Build", "Commit", "Updated"];
         let rows = [];
 
-        for (let repoId of Object.keys(repos)) {
+        for (let repoId of Object.keys(repos).sort()) {
             let repo = repos[repoId];
 
             for (let branchId of Object.keys(repo["branches"])) {
@@ -248,7 +248,7 @@ class Stagger {
         let headings = ["Artifact", "Type", "Coordinates", "Updated"];
         let rows = [];
 
-        for (let artifactId of Object.keys(data["artifacts"])) {
+        for (let artifactId of Object.keys(data["artifacts"]).sort()) {
             let artifact = data["artifacts"][artifactId];
 
             rows.push([
@@ -264,11 +264,11 @@ class Stagger {
         gesso.createElement(parent, "h2", "Example commands");
 
         let commands = [
-            ["Get data", gesso.createElement(null, "code", `curl ${apiUrl}`)],
+            ["Query", gesso.createElement(null, "code", `curl ${apiUrl}`)],
             ["Create or update", gesso.createElement(null, "code", `curl -X PUT ${apiUrl} -d @data.json`)],
             ["Delete", gesso.createElement(null, "code", `curl -X DELETE ${apiUrl}`)],
-            ["Check for updates", gesso.createElement(null, "code", `curl --head -H 'If-None-Match: <etag>' ${apiUrl}`)],
-            ["Listen for events", gesso.createElement(null, "code", `qreceive ${eventUrl}`)]
+            ["Poll for updates", gesso.createElement(null, "code", `curl --head -H 'If-None-Match: <etag>' ${apiUrl}`)],
+            ["Listen for updates", gesso.createElement(null, "code", `qreceive ${eventUrl}`)]
         ];
 
         gesso.createFieldTable(parent, commands, {"class": "fields"});
@@ -332,11 +332,11 @@ class Stagger {
         gesso.createElement(parent, "h2", "Example commands");
 
         let commands = [
-            ["Get data", gesso.createElement(null, "code", `curl ${apiUrl}`)],
+            ["Query", gesso.createElement(null, "code", `curl ${apiUrl}`)],
             ["Create or update", gesso.createElement(null, "code", `curl -X PUT ${apiUrl} -d @data.json`)],
             ["Delete", gesso.createElement(null, "code", `curl -X DELETE ${apiUrl}`)],
-            ["Check for updates", gesso.createElement(null, "code", `curl --head -H 'If-None-Match: <etag>' ${apiUrl}`)],
-            ["Listen for events", gesso.createElement(null, "code", `qreceive ${eventUrl}`)]
+            ["Poll for updates", gesso.createElement(null, "code", `curl --head -H 'If-None-Match: <etag>' ${apiUrl}`)],
+            ["Listen for updates", gesso.createElement(null, "code", `qreceive ${eventUrl}`)]
         ];
 
         gesso.createFieldTable(parent, commands, {"class": "fields"});

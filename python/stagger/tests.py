@@ -17,6 +17,7 @@
 # under the License.
 #
 
+from commandant import TestSkipped
 from plano import *
 
 container_artifact_data = {
@@ -77,31 +78,32 @@ repo_data = {
 
 def open_test_session(session):
     enable_logging(level="error")
+    session.test_timeout = 10
 
 def test_api_repo(session):
-    _test_api(session, "/api/repos/example-app-dist", repo_data)
+    _test_api(session, "repos/example-app-dist", repo_data)
 
 def test_api_branch(session):
-    _test_api(session, "/api/repos/example-app-dist/branches/master", branch_data)
+    _test_api(session, "repos/example-app-dist/branches/master", branch_data)
 
 def test_api_tag(session):
-    _test_api(session, "/api/repos/example-app-dist/branches/master/tags/tested", tag_data)
+    _test_api(session, "repos/example-app-dist/branches/master/tags/tested", tag_data)
 
 def test_api_artifact_container(session):
-    _test_api(session, "/api/repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-container", container_artifact_data)
+    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-container", container_artifact_data)
 
 def test_api_artifact_file(session):
-    _test_api(session, "/api/repos/example-app-dist/branches/master/tags/tested/artifacts/example-app.tar.gz", file_artifact_data)
+    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app.tar.gz", file_artifact_data)
 
 def test_api_artifact_maven(session):
-    _test_api(session, "/api/repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-maven", maven_artifact_data)
+    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-maven", maven_artifact_data)
 
 def test_api_artifact_rpm(session):
-    _test_api(session, "/api/repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-rpm", rpm_artifact_data)
+    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-rpm", rpm_artifact_data)
 
 def _test_api(session, path, data):
     with TestServer() as server:
-        url = f"{server.http_url}{path}"
+        url = f"{server.http_url}/api/{path}"
 
         try:
             head(url)
@@ -113,6 +115,42 @@ def _test_api(session, path, data):
         get(url)
         head(url)
         delete(url)
+
+def test_events_repo(session):
+    _test_events(session, "repos/example-app-dist", repo_data)
+
+def test_events_branch(session):
+    _test_events(session, "repos/example-app-dist/branches/master", branch_data)
+
+def test_events_tag(session):
+    _test_events(session, "repos/example-app-dist/branches/master/tags/tested", tag_data)
+
+def test_events_artifact_container(session):
+    _test_events(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-container", container_artifact_data)
+
+def test_events_artifact_file(session):
+    _test_events(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app.tar.gz", file_artifact_data)
+
+def test_events_artifact_maven(session):
+    _test_events(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-maven", maven_artifact_data)
+
+def test_events_artifact_rpm(session):
+    _test_events(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-rpm", rpm_artifact_data)
+
+def _test_events(session, path, data):
+    if which("qreceive") is None:
+        raise TestSkipped("qreceive is not available")
+
+    with TestServer() as server:
+        events_url = f"{server.amqp_url}/events/{path}"
+        api_url = f"{server.http_url}/api/{path}"
+
+        put(api_url, data)
+
+        with receive(events_url, 1) as proc:
+            sleep(0.2)
+            put(api_url, data)
+            check_process(proc)
 
 curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/json' -H 'Expect:'"
 
@@ -133,6 +171,9 @@ def head(url):
 def delete(url):
     print(f"DELETE {url} -> ", end="", flush=True)
     call("curl -X DELETE {} {}", url, curl_options)
+
+def receive(url, count):
+    return start_process("qreceive --count {} {}", count, url)
 
 class TestServer(object):
     def __init__(self):
