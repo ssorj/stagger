@@ -957,6 +957,18 @@ def wait_for_port(port, host="", timeout=30):
     finally:
         sock.close()
 
+def plural(noun, count=0):
+    if noun is None:
+        return ""
+
+    if count == 1:
+        return noun
+
+    if noun.endswith("s"):
+        return "{}ses".format(noun)
+
+    return "{}s".format(noun)
+
 # Modified copytree impl that allows for already existing destination
 # dirs
 def _copytree(src, dst, symlinks=False, ignore=None):
