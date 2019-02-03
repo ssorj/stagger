@@ -1,8 +1,11 @@
 <div id="content" markdown="1">
 
-<nav class="context"><a href="/">Stagger</a> &nbsp;&gt;&nbsp; Documentation</nav>
-
-# Documentation
+<header>
+  <div>
+    <nav class="context"><a href="/">Stagger</a> &nbsp;&gt;&nbsp; Documentation</nav>
+    <h1>Documentation</h1>
+  </div>
+</header>
 
 Stagger is a service for tagging software builds and describing the
 resulting build artifacts.  A Stagger tag binds a well-known name to a

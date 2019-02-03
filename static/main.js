@@ -168,28 +168,34 @@ class Stagger {
         gesso.replaceElement($("#content"), content);
     }
 
-    renderHeader(parent, title, navLinks) {
-        let nav = gesso.createElement(parent, "nav", {"class": "context"});
+    renderHeader(parent, title, navLinks, options) {
+        let header = gesso.createElement(parent, "header", options);
+        let div = gesso.createDiv(header);
 
-        for (let [href, title] of navLinks.slice(0, -1)) {
-            this.createStateChangeLink(nav, href, title);
-            gesso.createText(nav, " \xa0>\xa0 ");
+        if (navLinks) {
+            let nav = gesso.createElement(div, "nav", {"class": "context"});
+
+            for (let [href, title] of navLinks.slice(0, -1)) {
+                this.createStateChangeLink(nav, href, title);
+                gesso.createText(nav, " \xa0>\xa0 ");
+            }
+
+            gesso.createText(nav, navLinks[navLinks.length - 1]);
         }
 
-        gesso.createText(nav, navLinks[navLinks.length - 1]);
-        gesso.createElement(parent, "h1", title);
+        gesso.createElement(div, "h1", title);
+
+        div = gesso.createDiv(header);
+        gesso.createLink(div, "/docs.html", "Documentation");
     }
 
     renderFooter(parent) {
-        let elem = gesso.createElement(parent, "nav", {"class": "footer"});
-
-        gesso.createLink(elem, "/docs.html", "Documentation");
     }
 
     renderMainView(parent) {
         let repos = this.data["repos"];
 
-        gesso.createElement(parent, "h1", "Stagger");
+        this.renderHeader(parent, "Stagger", null, {"class": "nameplate"});
 
         let headings = ["Tag", "Build", "Commit", "Updated"];
         let rows = [];
@@ -215,7 +221,7 @@ class Stagger {
             }
         }
 
-        gesso.createTable(parent, headings, rows);
+        gesso.createTable(parent, headings, rows, {"class": "tags"});
 
         this.renderFooter(parent);
     }
@@ -233,8 +239,6 @@ class Stagger {
         let eventPath = `events/${repoId}/${branchId}/${tagId}`
         let eventUrl = `amqp://${url.hostname}:5672/${eventPath}`
 
-        gesso.createElement(parent, "h2", "Properties");
-
         let props = [
             ["API URL", gesso.createLink(null, apiUrl, apiUrl)],
             ["Event URL", gesso.createLink(null, eventUrl, eventUrl)],
@@ -247,7 +251,7 @@ class Stagger {
 
         gesso.createElement(parent, "h2", "Artifacts");
 
-        let headings = ["Artifacts", "Type", "Coordinates"];
+        let headings = ["Artifact", "Type", "Coordinates"];
         let rows = [];
 
         for (let artifactId of Object.keys(data["artifacts"])) {
@@ -294,8 +298,6 @@ class Stagger {
         let eventPath = `events/${repoId}/${branchId}/${tagId}/${artifactId}`
         let eventUrl = `amqp://${url.hostname}:5672/${eventPath}`
 
-        gesso.createElement(parent, "h2", "Properties");
-
         let props = [
             ["API URL", gesso.createLink(null, apiUrl, apiUrl)],
             ["Event URL", gesso.createLink(null, eventUrl, eventUrl)],
@@ -311,7 +313,7 @@ class Stagger {
             ]);
             break;
         case "file":
-            props.push(["URL", this.createOptionalLink(null, data["url"], data["url"])]);
+            props.push(["File URL", this.createOptionalLink(null, data["url"], data["url"])]);
             break;
         case "maven":
             props.push(...[

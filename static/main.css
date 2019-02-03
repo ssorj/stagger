@@ -54,11 +54,6 @@ pre {
     font: 10pt "Ubuntu Mono", monospace;
 }
 
-h1,
-h2 {
-    font-weight: 400;
-}
-
 h1 {
     font-size: 1.8em;
 }
@@ -125,7 +120,7 @@ table {
 td,
 th {
     border-bottom: 1px solid #ddd;
-    padding: 0.5em 0.5em 0.5em 0;
+    padding: 0.5em 0;
     vertical-align: top;
     text-align: left;
 }
@@ -148,6 +143,7 @@ table.fields td {
 
 table.fields th {
     width: 15%;
+    font-weight: 400;
 }
 
 hr {
@@ -189,4 +185,29 @@ nav.footer {
 div#content {
     max-width: 60em;
     margin: 0 auto;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 1.2em;
+}
+
+header.nameplate {
+    border: none;
+}
+
+header h1:last-child {
+    margin-bottom: 1em;
+}
+
+table.tags th:nth-child(1),
+table.tags td:nth-child(1) {
+    text-align: left;
+}
+
+table.tags th,
+table.tags td {
+    text-align: right;
 }
