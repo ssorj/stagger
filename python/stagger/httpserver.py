@@ -55,7 +55,7 @@ class BadDataResponse(PlainTextResponse):
         super().__init__(f"Bad request: Illegal data: {exception}\n", 400)
 
 class WebAppHandler(Handler):
-    _etag = f'"{str(_uuid.uuid4())}"'
+    _etag = str(_uuid.uuid4())
 
     def etag(self, request, obj):
         return self._etag
@@ -65,7 +65,7 @@ class WebAppHandler(Handler):
 
 class ModelHandler(Handler):
     def etag(self, request, obj):
-        return f'"{str(request.app.model.revision)}"'
+        return str(request.app.model.revision)
 
     async def __call__(self, receive, send):
         try:
@@ -83,22 +83,27 @@ class ModelHandler(Handler):
            and request.app.model._compressed_data is not None:
             return CompressedJsonResponse(request.app.model._compressed_data)
         else:
-            return JSONResponse(request.app.model.data())
+            return JsonResponse(request.app.model.data())
 
 class ModelObjectHandler(Handler):
     def etag(self, request, obj):
         if obj is not None:
-            return f'"{str(obj._digest)}"'
+            return str(obj._digest)
 
     async def render(self, request, obj):
+        if request.method in ("PUT", "DELETE"):
+            return OkResponse()
+
         assert obj is not None
 
         accept_encoding = request.headers.get("Accept-Encoding")
 
-        if accept_encoding is not None and "gzip" in accept_encoding:
+        if accept_encoding is not None \
+           and "gzip" in accept_encoding \
+           and obj._compressed_data is not None:
             return CompressedJsonResponse(obj._compressed_data)
         else:
-            return JSONResponse(obj.data())
+            return JsonResponse(obj.data())
 
 class RepoHandler(ModelObjectHandler):
     async def process(self, request):
@@ -108,13 +113,13 @@ class RepoHandler(ModelObjectHandler):
         if request.method == "PUT":
             repo_data = await request.json()
             repo = model.put_repo(repo_id, repo_data)
-            return repo, OkResponse()
+            return repo
 
         if request.method == "DELETE":
             model.delete_repo(repo_id)
-            return None, OkResponse()
+            return
 
-        return model.repos[repo_id], None
+        return model.repos[repo_id]
 
 class BranchHandler(ModelObjectHandler):
     async def process(self, request):
@@ -125,13 +130,13 @@ class BranchHandler(ModelObjectHandler):
         if request.method == "PUT":
             branch_data = await request.json()
             branch = model.put_branch(repo_id, branch_id, branch_data)
-            return branch, OkResponse()
+            return branch
 
         if request.method == "DELETE":
             model.delete_branch(repo_id, branch_id)
-            return None, OkResponse()
+            return
 
-        return model.repos[repo_id].branches[branch_id], None
+        return model.repos[repo_id].branches[branch_id]
 
 class TagHandler(ModelObjectHandler):
     async def process(self, request):
@@ -143,13 +148,13 @@ class TagHandler(ModelObjectHandler):
         if request.method == "PUT":
             tag_data = await request.json()
             tag = model.put_tag(repo_id, branch_id, tag_id, tag_data)
-            return tag, OkResponse()
+            return tag
 
         if request.method == "DELETE":
             model.delete_tag(repo_id, branch_id, tag_id)
-            return None, OkResponse()
+            return
 
-        return model.repos[repo_id].branches[branch_id].tags[tag_id], None
+        return model.repos[repo_id].branches[branch_id].tags[tag_id]
 
 class ArtifactHandler(ModelObjectHandler):
     async def process(self, request):
@@ -162,10 +167,10 @@ class ArtifactHandler(ModelObjectHandler):
         if request.method == "PUT":
             artifact_data = await request.json()
             artifact = model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
-            return artifact, OkResponse()
+            return artifact
 
         if request.method == "DELETE":
             model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
-            return None, OkResponse()
+            return
 
-        return model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id], None
+        return model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]

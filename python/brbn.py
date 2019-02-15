@@ -69,26 +69,24 @@ class Handler:
         request = Request(self.scope, receive)
 
         try:
-            obj, response = await self.process(request)
+            obj = await self.process(request)
+        except Redirect as e:
+            return await RedirectResponse(str(e))
         except _json_decoder.JSONDecodeError as e:
             return await BadJsonResponse(e)
         except Exception as e:
             return await ServerErrorResponse(e)
 
-        if response is not None:
-            return await response(receive, send)
-
-        server_etag = self.etag(request, obj)
+        server_etag = f'"{self.etag(request, obj)}"'
         client_etag = request.headers.get("If-None-Match")
 
         if server_etag is not None and client_etag == server_etag:
             response = NotModifiedResponse()
         elif request.method == "HEAD":
             response = Response("")
-        elif response is None:
+        else:
             response = await self.render(request, obj)
-
-        assert response is not None
+            assert response is not None
 
         if server_etag is not None:
             response.headers["ETag"] = server_etag
@@ -96,7 +94,7 @@ class Handler:
         await response(receive, send)
 
     async def process(self, request):
-        return None, None # obj, short-circuit response
+        return None # obj
 
     def etag(self, request, obj):
         pass
@@ -104,7 +102,7 @@ class Handler:
     async def render(self, request, obj):
         pass
 
-class RedirectRequest(Exception):
+class Redirect(Exception):
     pass
 
 class NotFoundResponse(PlainTextResponse):
@@ -126,6 +124,9 @@ class BadJsonResponse(PlainTextResponse):
 class OkResponse(Response):
     def __init__(self):
         super().__init__("OK\n")
+
+class JsonResponse(JSONResponse):
+    pass
 
 class CompressedJsonResponse(Response):
     def __init__(self, content):
