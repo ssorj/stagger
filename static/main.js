@@ -124,7 +124,7 @@ class Stagger {
             try {
                 coords = new URL(data["url"]).pathname;
                 coords = coords.substr(coords.lastIndexOf("/") + 1);
-            } catch {
+            } catch (e) {
                 coords = "-"
             }
 
