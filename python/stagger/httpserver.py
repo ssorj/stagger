@@ -71,9 +71,9 @@ class ModelHandler(Handler):
         try:
             return await super().__call__(receive, send)
         except KeyError as e:
-            return await NotFoundResponse(e)
+            return await NotFoundResponse(e)(receive, send)
         except BadDataError as e:
-            return await BadDataResponse(e)
+            return await BadDataResponse(e)(receive, send)
 
     async def render(self, request, obj):
         accept_encoding = request.headers.get("Accept-Encoding")
