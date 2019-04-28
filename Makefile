@@ -20,8 +20,7 @@
 .NOTPARALLEL:
 
 DESTDIR := ""
-PREFIX := ${HOME}/.local
-INSTALLED_STAGGER_HOME = ${PREFIX}/share/stagger
+INSTALL_DIR := ${HOME}/.local/opt/bodega
 
 export STAGGER_HOME = ${CURDIR}/build
 export PATH := ${STAGGER_HOME}/bin:${PATH}
@@ -47,16 +46,16 @@ clean:
 	rm -rf build
 
 .PHONY: build
-build: ${BIN_TARGETS} build/prefix.txt
+build: ${BIN_TARGETS} build/install-dir.txt
 	python3 -m transom render --quiet --site-url "" --force static build/static
 	ln -snf ../python build/python
 
 .PHONY: install
 install: build
-	scripts/install-files build/bin ${DESTDIR}$$(cat build/prefix.txt)/bin
-	scripts/install-files python ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/python
-	scripts/install-files python/stagger ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/python/stagger
-	scripts/install-files build/static ${DESTDIR}$$(cat build/prefix.txt)/share/stagger/static
+	scripts/install-files build/bin ${DESTDIR}$$(cat build/install-dir.txt)/bin
+	scripts/install-files python ${DESTDIR}$$(cat build/install-dir.txt)/python
+	scripts/install-files python/stagger ${DESTDIR}$$(cat build/install-dir.txt)/python/stagger
+	scripts/install-files build/static ${DESTDIR}$$(cat build/install-dir.txt)/static
 
 .PHONY: test
 test: build
@@ -72,7 +71,7 @@ build-image:
 
 .PHONY: test-image
 test-image:
-	sudo docker run --rm --user 9999 -it ssorj/stagger /app/.local/bin/stagger-test
+	sudo docker run --rm --user 9999 -it ssorj/stagger /app/bin/stagger-test
 
 .PHONY: run-image
 run-image:
@@ -92,11 +91,11 @@ push-image:
 #
 # oc tag --source=docker ssorj/stagger:latest stagger:latest
 
-build/prefix.txt:
-	echo ${PREFIX} > build/prefix.txt
+build/install-dir.txt:
+	echo ${INSTALL_DIR} > build/install-dir.txt
 
 build/bin/%: bin/%.in
-	scripts/configure-file -a stagger_home=${INSTALLED_STAGGER_HOME} $< $@
+	scripts/configure-file -a stagger_home=${INSTALL_DIR} $< $@
 
 .PHONY: update-%
 update-%:

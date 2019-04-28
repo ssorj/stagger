@@ -23,16 +23,19 @@ RUN microdnf --nodocs install make gcc python3-devel python3-qpid-proton qtools 
 
 COPY . /app/src
 ENV HOME=/app
-WORKDIR /app/src
 
 RUN pip3 install --user starlette uvicorn aiofiles
-RUN make clean install
+
+WORKDIR /app/src
+RUN make clean install INSTALL_DIR=/app
 
 RUN chown -R 1001:0 /app && chmod -R 775 /app
 USER 1001
 
+WORKDIR /app
+ENV PATH=/app/bin:$PATH
+
 EXPOSE 8080
 EXPOSE 5672
 
-ENV PATH=/app/.local/bin:$PATH
 CMD ["stagger"]
