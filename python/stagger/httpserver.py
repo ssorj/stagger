@@ -32,7 +32,7 @@ class HttpServer(Server):
         super().__init__(app, host=host, port=port)
 
         self.add_route("/healthz", endpoint=Handler, methods=["GET"])
-        self.add_route("/api/data", endpoint=ModelHandler, methods=["GET", "HEAD"])
+        self.add_route("/api/data", endpoint=DataHandler, methods=["GET", "HEAD"])
         self.add_route("/api/repos/{repo_id}", endpoint=RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
         self.add_route("/api/repos/{repo_id}/branches/{branch_id}",
                        endpoint=BranchHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
@@ -60,10 +60,7 @@ class WebAppHandler(Handler):
     async def render(self, request, obj):
         return FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
 
-class ModelHandler(Handler):
-    def etag(self, request, obj):
-        return str(request.app.model.revision)
-
+class ModelObjectHandler(Handler):
     async def handle(self, request):
         try:
             return await super().handle(request)
@@ -72,28 +69,9 @@ class ModelHandler(Handler):
         except BadDataError as e:
             return BadDataResponse(e)
 
-    async def render(self, request, obj):
-        accept_encoding = request.headers.get("Accept-Encoding")
-
-        if accept_encoding is not None \
-           and "gzip" in accept_encoding \
-           and request.app.model._compressed_data is not None:
-            return CompressedJsonResponse(request.app.model._compressed_data)
-        else:
-            return JsonResponse(request.app.model.data())
-
-class ModelObjectHandler(Handler):
     def etag(self, request, obj):
         if obj is not None:
             return str(obj._digest)
-
-    async def handle(self, request):
-        try:
-            return await super().handle(request)
-        except KeyError as e:
-            return NotFoundResponse()
-        except BadDataError as e:
-            return BadDataResponse(e)
 
     async def render(self, request, obj):
         if request.method in ("PUT", "DELETE"):
@@ -103,12 +81,17 @@ class ModelObjectHandler(Handler):
 
         accept_encoding = request.headers.get("Accept-Encoding")
 
-        if accept_encoding is not None \
-           and "gzip" in accept_encoding \
-           and obj._compressed_data is not None:
+        if accept_encoding is not None and "gzip" in accept_encoding and obj._compressed_data is not None:
             return CompressedJsonResponse(obj._compressed_data)
         else:
             return JsonResponse(obj.data())
+
+class DataHandler(ModelObjectHandler):
+    async def process(self, request):
+        return request.app.model
+
+    def etag(self, request, model):
+        return str(model.revision)
 
 class RepoHandler(ModelObjectHandler):
     async def process(self, request):

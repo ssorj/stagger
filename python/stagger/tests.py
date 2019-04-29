@@ -116,6 +116,10 @@ def test_api_artifact_maven(session):
 def test_api_artifact_rpm(session):
     _test_api_artifact(session, "example-app-dist", "master", "tested", "example-app-rpm", rpm_artifact_data)
 
+def test_api_data(session):
+    with TestServer() as server:
+        get(f"{server.http_url}/api/data")
+
 def _test_api_curl(session, path, data):
     with TestServer() as server:
         url = f"{server.http_url}/api/{path}"
