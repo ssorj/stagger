@@ -220,7 +220,15 @@ class TestServer(object):
         self.proc.amqp_url = f"amqp://127.0.0.1:{amqp_port}"
 
     def __enter__(self):
-        sleep(0.2);
+        for i in range(10):
+            try:
+                get(f"{self.proc.http_url}/healthz")
+                break
+            except CalledProcessError:
+                sleep(0.1)
+        else:
+            raise Exception("Test server timed out")
+
         return self.proc
 
     def __exit__(self, exc_type, exc_value, traceback):
