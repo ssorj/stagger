@@ -19,6 +19,7 @@
 
 from commandant import TestSkipped
 from fortworth import *
+from requests.exceptions import HTTPError
 
 container_artifact_data = {
     "type": "container",
@@ -80,6 +81,10 @@ def open_test_session(session):
     enable_logging(level="error")
     session.test_timeout = 10
 
+def test_healthz(session):
+    with TestServer() as server:
+        get(f"{server.http_url}/healthz")
+
 def test_api_repo(session):
     _test_api_curl(session, "repos/example-app-dist", repo_data)
 
@@ -88,6 +93,12 @@ def test_api_branch(session):
 
 def test_api_tag(session):
     with TestServer() as server:
+        try:
+            stagger_get_tag("example-app-dist", "master", "tested", service_url=server.http_url)
+            assert False, "Expected this to 404"
+        except HTTPError as e:
+            assert e.response.status_code == 404, "Expected this to 404"
+
         stagger_put_tag("example-app-dist", "master", "tested", tag_data, service_url=server.http_url)
         stagger_get_tag("example-app-dist", "master", "tested", service_url=server.http_url)
 
@@ -122,6 +133,12 @@ def _test_api_curl(session, path, data):
 
 def _test_api_artifact(session, repo, branch, tag, artifact, artifact_data):
     with TestServer() as server:
+        try:
+            stagger_get_artifact(repo, branch, tag, artifact, service_url=server.http_url)
+            assert False, "Expected this to 404"
+        except HTTPError as e:
+            assert e.response.status_code == 404, "Expected this to 404"
+
         stagger_put_artifact(repo, branch, tag, artifact, artifact_data, service_url=server.http_url)
         stagger_get_artifact(repo, branch, tag, artifact, service_url=server.http_url)
 

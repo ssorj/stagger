@@ -17,13 +17,12 @@
 # under the License.
 #
 
-import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
 import starlette.requests as _requests
 import starlette.routing as _routing
 import starlette.staticfiles as _staticfiles
-import uuid as _uuid
+import traceback as _traceback
 import uvicorn as _uvicorn
 
 from starlette.responses import *
@@ -69,45 +68,69 @@ class Handler:
         request = Request(self.scope, receive)
 
         try:
-            obj = await self.process(request)
-        except Redirect as e:
-            return await RedirectResponse(str(e))
-        except _json_decoder.JSONDecodeError as e:
-            return await BadJsonResponse(e)
+            response = await self.handle(request)
+        except HandlingException as e:
+            response = e.response
         except Exception as e:
-            return await ServerErrorResponse(e)
-
-        server_etag = f'"{self.etag(request, obj)}"'
-        client_etag = request.headers.get("If-None-Match")
-
-        if server_etag is not None and client_etag == server_etag:
-            response = NotModifiedResponse()
-        elif request.method == "HEAD":
-            response = Response("")
-        else:
-            response = await self.render(request, obj)
-            assert response is not None
-
-        if server_etag is not None:
-            response.headers["ETag"] = server_etag
+            response = ServerErrorResponse(e)
 
         await response(receive, send)
 
+    async def handle(self, request):
+        entity = await self.process(request)
+        server_etag = self.etag(request, entity)
+
+        if server_etag is not None:
+            server_etag = f'"{server_etag}"'
+            client_etag = request.headers.get("if-none-match")
+
+            if client_etag == server_etag:
+                return NotModifiedResponse()
+
+        if request.method == "HEAD":
+            response = Response("")
+        else:
+            response = await self.render(request, entity)
+            assert response is not None
+
+        if server_etag is not None:
+            response.headers["etag"] = server_etag
+
+        return response
+
     async def process(self, request):
-        return None # obj
+        return None
 
-    def etag(self, request, obj):
+    def etag(self, request, entity):
         pass
 
-    async def render(self, request, obj):
-        pass
+    async def render(self, request, entity):
+        return OkResponse()
 
-class Redirect(Exception):
-    pass
+class HandlingException(Exception):
+    def __init__(self, message, response):
+        super().__init__(message)
+        self.response = response
+
+class Redirect(HandlingException):
+    def __init__(self, url):
+        super().__init__(url, RedirectResponse(url))
+
+class BadRequestError(HandlingException):
+    def __init__(self, message):
+        super().__init__(message, BadRequestResponse(message))
+
+class NotFoundError(HandlingException):
+    def __init__(self, message):
+        super().__init__(message, NotFoundResponse(message))
+
+class BadRequestResponse(PlainTextResponse):
+    def __init__(self, exception):
+        super().__init__(f"Bad request: {exception}\n", 400)
 
 class NotFoundResponse(PlainTextResponse):
-    def __init__(self, exception):
-        super().__init__(f"Not found: {exception}\n", 404)
+    def __init__(self):
+        super().__init__(f"Not found\n", 404)
 
 class NotModifiedResponse(PlainTextResponse):
     def __init__(self):
@@ -116,6 +139,7 @@ class NotModifiedResponse(PlainTextResponse):
 class ServerErrorResponse(PlainTextResponse):
     def __init__(self, exception):
         super().__init__(f"Internal server error: {exception}\n", 500)
+        _traceback.print_exc()
 
 class BadJsonResponse(PlainTextResponse):
     def __init__(self, exception):
@@ -125,9 +149,52 @@ class OkResponse(Response):
     def __init__(self):
         super().__init__("OK\n")
 
+class HtmlResponse(HTMLResponse):
+    pass
+
 class JsonResponse(JSONResponse):
     pass
 
 class CompressedJsonResponse(Response):
     def __init__(self, content):
         super().__init__(content, headers={"Content-Encoding": "gzip"}, media_type="application/json")
+
+_directory_index_template = """
+<html>
+  <head>
+    <title>{title}</title>
+    <link rel="icon" href="data:,">
+  </head>
+  <body><pre>{lines}</pre></body>
+</html>
+"""
+
+class DirectoryIndexResponse(HtmlResponse):
+    def __init__(self, base_dir, file_path):
+        super().__init__(self.make_index(base_dir, file_path))
+
+    def make_index(self, base_dir, request_path):
+        assert not request_path.startswith("/")
+
+        if request_path != "/" and request_path.endswith("/"):
+            request_path = request_path[:-1]
+
+        fs_path = _os.path.join(base_dir, request_path)
+
+        assert _os.path.isdir(fs_path), fs_path
+
+        names = _os.listdir(fs_path)
+        lines = list()
+
+        if request_path == "":
+            lines.append("..")
+
+            for name in names:
+                lines.append(f"<a href=\"/{name}\">{name}</a>")
+        else:
+            lines.append(f"<a href=\"/{request_path}/..\">..</a>")
+
+            for name in names:
+                lines.append(f"<a href=\"/{request_path}/{name}\">{name}</a>")
+
+        return _directory_index_template.format(title=request_path, lines="\n".join(lines))

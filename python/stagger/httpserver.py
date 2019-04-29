@@ -31,20 +31,17 @@ class HttpServer(Server):
     def __init__(self, app, host="", port=8080):
         super().__init__(app, host=host, port=port)
 
-        self.add_route("/api/data",
-                       endpoint=ModelHandler, methods=["GET", "HEAD"])
-        self.add_route("/api/repos/{repo_id}",
-                       endpoint=RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
+        self.add_route("/healthz", endpoint=Handler, methods=["GET"])
+        self.add_route("/api/data", endpoint=ModelHandler, methods=["GET", "HEAD"])
+        self.add_route("/api/repos/{repo_id}", endpoint=RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
         self.add_route("/api/repos/{repo_id}/branches/{branch_id}",
                        endpoint=BranchHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
         self.add_route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}",
                        endpoint=TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
         self.add_route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}/artifacts/{artifact_id}",
                        endpoint=ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
-        self.add_route("/",
-                       endpoint=WebAppHandler, methods=["GET", "HEAD"])
-        self.add_route("/tags/{repo_id}/{branch_id}/{tag_id}",
-                       endpoint=WebAppHandler, methods=["GET", "HEAD"])
+        self.add_route("/", endpoint=WebAppHandler, methods=["GET", "HEAD"])
+        self.add_route("/tags/{repo_id}/{branch_id}/{tag_id}", endpoint=WebAppHandler, methods=["GET", "HEAD"])
         self.add_route("/artifacts/{repo_id}/{branch_id}/{tag_id}/{artifact_id}",
                        endpoint=WebAppHandler, methods=["GET", "HEAD"])
 
@@ -67,13 +64,13 @@ class ModelHandler(Handler):
     def etag(self, request, obj):
         return str(request.app.model.revision)
 
-    async def __call__(self, receive, send):
+    async def handle(self, request):
         try:
-            return await super().__call__(receive, send)
+            return await super().handle(request)
         except KeyError as e:
-            return await NotFoundResponse(e)(receive, send)
+            return NotFoundResponse()
         except BadDataError as e:
-            return await BadDataResponse(e)(receive, send)
+            return BadDataResponse(e)
 
     async def render(self, request, obj):
         accept_encoding = request.headers.get("Accept-Encoding")
@@ -89,6 +86,14 @@ class ModelObjectHandler(Handler):
     def etag(self, request, obj):
         if obj is not None:
             return str(obj._digest)
+
+    async def handle(self, request):
+        try:
+            return await super().handle(request)
+        except KeyError as e:
+            return NotFoundResponse()
+        except BadDataError as e:
+            return BadDataResponse(e)
 
     async def render(self, request, obj):
         if request.method in ("PUT", "DELETE"):
