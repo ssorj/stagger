@@ -27,11 +27,14 @@ from .httpserver import HttpServer
 from .model import Model
 
 class Application:
-    def __init__(self, home, data_dir=None, amqp_port=5672, http_port=8080):
+    def __init__(self, home, data_dir=None, http_port=8080, amqp_port=5672, http_url=None, amqp_url=None):
         self.home = home
         self.data_dir = data_dir
-        self.amqp_port = amqp_port
         self.http_port = http_port
+        self.amqp_port = amqp_port
+
+        self.http_url = http_url
+        self.amqp_url = amqp_url
 
         if self.data_dir is None:
             self.data_dir = _os.path.join(self.home, "data")
@@ -39,8 +42,8 @@ class Application:
         data_file = _os.path.join(self.data_dir, "data.json")
 
         self.model = Model(self, data_file)
-        self.amqp_server = AmqpServer(self, port=self.amqp_port)
         self.http_server = HttpServer(self, port=self.http_port)
+        self.amqp_server = AmqpServer(self, port=self.amqp_port)
 
     def run(self):
         _logging.basicConfig(level=_logging.DEBUG)

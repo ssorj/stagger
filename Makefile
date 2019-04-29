@@ -63,7 +63,7 @@ test: build
 
 .PHONY: run
 run: build
-	stagger
+	STAGGER_HTTP_URL=https://example.net:8080 STAGGER_AMQP_URL=amqps://example.net:5672 stagger
 
 .PHONY: build-image
 build-image:

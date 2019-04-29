@@ -53,10 +53,6 @@ class Stagger {
             this.request = event.state;
             window.dispatchEvent(new Event("statechange"));
         });
-
-        this.exampleCommandNote =
-            "Note: You may need to change the service host and port in these " +
-            "examples according to the details of your deployment.";
     }
 
     fetchDataPeriodically() {
@@ -150,6 +146,26 @@ class Stagger {
         return new Date(time).toLocaleString();
     }
 
+    getHttpUrl() {
+        let url = this.data["http_url"];
+
+        if (!url) {
+            url = new URL(window.location.href).origin;
+        }
+
+        return url;
+    }
+
+    getAmqpUrl() {
+        let url = this.data["amqp_url"];
+
+        if (!url) {
+            url = `amqp://${new URL(window.location.href).hostname}:5672`;
+        }
+
+        return url;
+    }
+
     render() {
         console.log(`Rendering ${this.request.path}`);
 
@@ -234,8 +250,8 @@ class Stagger {
 
         let url = new URL(window.location.href);
         let path = `repos/${repoId}/branches/${branchId}/tags/${tagId}`
-        let apiUrl = `${url.origin}/api/${path}`
-        let eventUrl = `amqp://${url.hostname}:5672/events/${path}`
+        let apiUrl = `${this.getHttpUrl()}/api/${path}`
+        let eventUrl = `${this.getAmqpUrl()}/events/${path}`
 
         let props = [
             ["API URL", gesso.createLink(null, apiUrl, apiUrl)],
@@ -277,8 +293,6 @@ class Stagger {
 
         gesso.createFieldTable(parent, commands, {"class": "fields commands"});
 
-        gesso.createElement(parent, "p", {"class": "note", "text": this.exampleCommandNote});
-
         gesso.createElement(parent, "h2", "Data");
 
         this.createJsonBlock(parent, data);
@@ -293,8 +307,8 @@ class Stagger {
 
         let url = new URL(window.location.href);
         let path = `repos/${repoId}/branches/${branchId}/tags/${tagId}/artifacts/${artifactId}`
-        let apiUrl = `${url.origin}/api/${path}`
-        let eventUrl = `amqp://${url.hostname}:5672/events/${path}`
+        let apiUrl = `${this.getHttpUrl()}/api/${path}`
+        let eventUrl = `${this.getAmqpUrl()}/events/${path}`
 
         let props = [
             ["API URL", gesso.createLink(null, apiUrl, apiUrl)],
@@ -346,8 +360,6 @@ class Stagger {
         ];
 
         gesso.createFieldTable(parent, commands, {"class": "fields commands"});
-
-        gesso.createElement(parent, "p", {"class": "note", "text": this.exampleCommandNote});
 
         gesso.createElement(parent, "h2", "Data");
 

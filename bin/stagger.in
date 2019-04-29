@@ -32,5 +32,10 @@ if __name__ == "__main__":
     http_port = int(os.environ.get("STAGGER_HTTP_PORT_", 8080))
     amqp_port = int(os.environ.get("STAGGER_AMQP_PORT_", 5672))
 
-    app = Application(home, data_dir=data_dir, http_port=http_port, amqp_port=amqp_port)
+    http_url = os.environ.get("STAGGER_HTTP_URL")
+    amqp_url = os.environ.get("STAGGER_AMQP_URL")
+
+    app = Application(home, data_dir=data_dir,
+                      http_port=http_port, amqp_port=amqp_port,
+                      http_url=http_url, amqp_url=amqp_url)
     app.run()

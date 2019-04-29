@@ -184,6 +184,32 @@ def _test_events(session, path, data):
             put(api_url, data)
             check_process(proc)
 
+def test_html_endpoints(session):
+    with TestServer() as server:
+        stagger_put_tag("example-app-dist", "master", "tested", tag_data, service_url=server.http_url)
+        stagger_put_artifact("example-app-dist", "master", "tested", "example-app-container", container_artifact_data, service_url=server.http_url)
+        stagger_put_artifact("example-app-dist", "master", "tested", "example-app.tar.gz", file_artifact_data, service_url=server.http_url)
+        stagger_put_artifact("example-app-dist", "master", "tested", "example-app-maven", maven_artifact_data, service_url=server.http_url)
+        stagger_put_artifact("example-app-dist", "master", "tested", "example-app-rpm", rpm_artifact_data, service_url=server.http_url)
+
+        get(f"{server.http_url}/")
+        get(f"{server.http_url}/index.html")
+        get(f"{server.http_url}/tags/example-app-dist/master/tested")
+        get(f"{server.http_url}/artifacts/example-app-dist/master/tested/example-app-container")
+        get(f"{server.http_url}/artifacts/example-app-dist/master/tested/example-app.tar.gz")
+        get(f"{server.http_url}/artifacts/example-app-dist/master/tested/example-app-maven")
+        get(f"{server.http_url}/artifacts/example-app-dist/master/tested/example-app-rpm")
+
+        try:
+            get(f"{server.http_url}/tags/example-app-dist/master/not-there")
+        except CalledProcessError:
+            pass
+
+        try:
+            get(f"{server.http_url}/artifacts/example-app-dist/master/tested/not-there")
+        except CalledProcessError:
+            pass
+
 curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/json' -H 'Expect:'"
 
 def put(url, data):

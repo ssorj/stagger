@@ -89,6 +89,8 @@ class Model:
             repos[repo_id] = repo.data()
 
         return {
+            "http_url": self.app.http_url,
+            "amqp_url": self.app.amqp_url,
             "repos": repos,
             "revision": self.revision,
         }
@@ -216,7 +218,7 @@ class ModelObject:
             self.update_time = fields["update_time"]
         except KeyError:
             self.update_time = round(_time.time() * 1000)
-        
+
         missing = list()
 
         for name in self._required_fields:

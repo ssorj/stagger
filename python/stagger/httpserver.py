@@ -40,25 +40,16 @@ class HttpServer(Server):
                        endpoint=TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
         self.add_route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}/artifacts/{artifact_id}",
                        endpoint=ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
-        self.add_route("/", endpoint=WebAppHandler, methods=["GET", "HEAD"])
-        self.add_route("/tags/{repo_id}/{branch_id}/{tag_id}", endpoint=WebAppHandler, methods=["GET", "HEAD"])
+        self.add_route("/", endpoint=HtmlHandler, methods=["GET", "HEAD"])
+        self.add_route("/tags/{repo_id}/{branch_id}/{tag_id}", endpoint=TagHtmlHandler, methods=["GET", "HEAD"])
         self.add_route("/artifacts/{repo_id}/{branch_id}/{tag_id}/{artifact_id}",
-                       endpoint=WebAppHandler, methods=["GET", "HEAD"])
+                       endpoint=ArtifactHtmlHandler, methods=["GET", "HEAD"])
 
         self.add_static_files("", _os.path.join(app.home, "static"))
 
 class BadDataResponse(PlainTextResponse):
     def __init__(self, exception):
         super().__init__(f"Bad request: Illegal data: {exception}\n", 400)
-
-class WebAppHandler(Handler):
-    _etag = str(_uuid.uuid4())
-
-    def etag(self, request, obj):
-        return self._etag
-
-    async def render(self, request, obj):
-        return FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
 
 class ModelObjectHandler(Handler):
     async def handle(self, request):
@@ -160,5 +151,39 @@ class ArtifactHandler(ModelObjectHandler):
         if request.method == "DELETE":
             model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
             return
+
+        return model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]
+
+class HtmlHandler(Handler):
+    _etag = str(_uuid.uuid4())
+
+    async def handle(self, request):
+        try:
+            return await super().handle(request)
+        except KeyError as e:
+            return NotFoundResponse()
+
+    def etag(self, request, obj):
+        return self._etag
+
+    async def render(self, request, obj):
+        return FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
+
+class TagHtmlHandler(HtmlHandler):
+    async def process(self, request):
+        model = request.app.model
+        repo_id = request.path_params["repo_id"]
+        branch_id = request.path_params["branch_id"]
+        tag_id = request.path_params["tag_id"]
+
+        return model.repos[repo_id].branches[branch_id].tags[tag_id]
+
+class ArtifactHtmlHandler(HtmlHandler):
+    async def process(self, request):
+        model = request.app.model
+        repo_id = request.path_params["repo_id"]
+        branch_id = request.path_params["branch_id"]
+        tag_id = request.path_params["tag_id"]
+        artifact_id = request.path_params["artifact_id"]
 
         return model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]
