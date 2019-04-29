@@ -18,7 +18,7 @@
 #
 
 from commandant import TestSkipped
-from plano import *
+from fortworth import *
 
 container_artifact_data = {
     "type": "container",
@@ -81,27 +81,31 @@ def open_test_session(session):
     session.test_timeout = 10
 
 def test_api_repo(session):
-    _test_api(session, "repos/example-app-dist", repo_data)
+    _test_api_curl(session, "repos/example-app-dist", repo_data)
 
 def test_api_branch(session):
-    _test_api(session, "repos/example-app-dist/branches/master", branch_data)
+    _test_api_curl(session, "repos/example-app-dist/branches/master", branch_data)
 
 def test_api_tag(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested", tag_data)
+    with TestServer() as server:
+        stagger_put_tag("example-app-dist", "master", "tested", tag_data, service_url=server.http_url)
+        stagger_get_tag("example-app-dist", "master", "tested", service_url=server.http_url)
+
+    _test_api_curl(session, "repos/example-app-dist/branches/master/tags/tested", tag_data)
 
 def test_api_artifact_container(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-container", container_artifact_data)
+    _test_api_artifact(session, "example-app-dist", "master", "tested", "example-app-container", container_artifact_data)
 
 def test_api_artifact_file(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app.tar.gz", file_artifact_data)
+    _test_api_artifact(session, "example-app-dist", "master", "tested", "example-app.tar.gz", file_artifact_data)
 
 def test_api_artifact_maven(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-maven", maven_artifact_data)
+    _test_api_artifact(session, "example-app-dist", "master", "tested", "example-app-maven", maven_artifact_data)
 
 def test_api_artifact_rpm(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-rpm", rpm_artifact_data)
+    _test_api_artifact(session, "example-app-dist", "master", "tested", "example-app-rpm", rpm_artifact_data)
 
-def _test_api(session, path, data):
+def _test_api_curl(session, path, data):
     with TestServer() as server:
         url = f"{server.http_url}/api/{path}"
 
@@ -115,6 +119,13 @@ def _test_api(session, path, data):
         get(url)
         head(url)
         delete(url)
+
+def _test_api_artifact(session, repo, branch, tag, artifact, artifact_data):
+    with TestServer() as server:
+        stagger_put_artifact(repo, branch, tag, artifact, artifact_data, service_url=server.http_url)
+        stagger_get_artifact(repo, branch, tag, artifact, service_url=server.http_url)
+
+    _test_api_curl(session, f"repos/{repo}/branches/{branch}/tags/{tag}/artifacts/{artifact}", artifact_data)
 
 def test_events_repo(session):
     _test_events(session, "repos/example-app-dist", repo_data)
