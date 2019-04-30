@@ -147,7 +147,7 @@ class Stagger {
     }
 
     getHttpUrl() {
-        let url = this.data["http_url"];
+        let url = this.data["config"]["http_url"];
 
         if (!url) {
             url = new URL(window.location.href).origin;
@@ -157,7 +157,7 @@ class Stagger {
     }
 
     getAmqpUrl() {
-        let url = this.data["amqp_url"];
+        let url = this.data["config"]["amqp_url"];
 
         if (!url) {
             url = `amqp://${new URL(window.location.href).hostname}:5672`;

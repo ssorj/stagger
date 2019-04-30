@@ -89,8 +89,10 @@ class Model:
             repos[repo_id] = repo.data()
 
         return {
-            "http_url": self.app.http_url,
-            "amqp_url": self.app.amqp_url,
+            "config": {
+                "http_url": self.app.http_url,
+                "amqp_url": self.app.amqp_url,
+            },
             "repos": repos,
             "revision": self.revision,
         }
