@@ -167,7 +167,7 @@ _directory_index_template = """
   </head>
   <body><pre>{lines}</pre></body>
 </html>
-"""
+""".strip()
 
 class DirectoryIndexResponse(HtmlResponse):
     def __init__(self, base_dir, file_path):
@@ -197,4 +197,6 @@ class DirectoryIndexResponse(HtmlResponse):
             for name in names:
                 lines.append(f"<a href=\"/{request_path}/{name}\">{name}</a>")
 
-        return _directory_index_template.format(title=request_path, lines="\n".join(lines))
+        html = _directory_index_template.format(title=request_path, lines="\n".join(lines))
+
+        return html
