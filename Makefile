@@ -20,7 +20,8 @@
 .NOTPARALLEL:
 
 DESTDIR := ""
-INSTALL_DIR := ${HOME}/.local/opt/bodega
+INSTALL_DIR := ${HOME}/.local/opt/stagger
+IMAGE_NAME := quay.io/ssorj/stagger
 
 export STAGGER_HOME = ${CURDIR}/build
 export PATH := ${STAGGER_HOME}/bin:${PATH}
@@ -67,29 +68,28 @@ run: build
 
 .PHONY: build-image
 build-image:
-	sudo docker build -t ssorj/stagger .
+	podman build --no-cache -qt ${IMAGE_NAME} .
 
 .PHONY: test-image
 test-image:
-	sudo docker run --rm --user 9999 -it ssorj/stagger /app/bin/stagger-test
+	podman run --rm -it ${IMAGE_NAME} /app/bin/stagger-test
 
 .PHONY: run-image
 run-image:
-	sudo docker run --rm --user 9999 -p 8080:8080 ssorj/stagger
+	podman run --rm -p 8080:8080 ${IMAGE_NAME}
 
 .PHONY: debug-image
 debug-image:
-	sudo docker run --rm --user 9999 -p 8080:8080 -it ssorj/stagger /bin/bash
+	podman run --rm -p 8080:8080 -it ${IMAGE_NAME} /bin/bash
 
-# Prerequisite: docker login
+# Prerequisite: podman login quay.io
 
 .PHONY: push-image
 push-image:
-	sudo docker push ssorj/stagger
+	podman push -q ${IMAGE_NAME}
 
 # To tell the cluster about the new image:
-#
-# oc tag --source=docker ssorj/stagger:latest stagger:latest
+# oc tag --source=docker ${IMAGE_NAME} stagger
 
 build/install-dir.txt:
 	echo ${INSTALL_DIR} > build/install-dir.txt

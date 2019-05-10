@@ -17,23 +17,29 @@
 # under the License.
 #
 
-FROM registry.fedoraproject.org/fedora-minimal
+FROM registry.fedoraproject.org/fedora-minimal AS build
 
-RUN microdnf --nodocs install make gcc python3-devel python3-qpid-proton python3-requests python3-ujson qtools && microdnf clean all
+RUN microdnf --nodocs install make gcc python3-devel && microdnf clean all
 
-COPY . /app/src
+COPY . /src
+RUN mkdir /app
 ENV HOME=/app
 
 RUN pip3 install --user starlette uvicorn aiofiles
 
-WORKDIR /app/src
+WORKDIR /src
 RUN make clean install INSTALL_DIR=/app
+RUN chmod -R 775 /app
 
-RUN chown -R 1001:0 /app && chmod -R 775 /app
-USER 1001
+FROM registry.fedoraproject.org/fedora-minimal
+
+RUN microdnf --nodocs install python3-qpid-proton python3-requests python3-ujson qtools && microdnf clean all
+
+COPY --from=build /app /app
 
 WORKDIR /app
-ENV PATH=/app/bin:$PATH
+ENV HOME=/app
+ENV PATH=$HOME/bin:$PATH
 
 EXPOSE 8080
 EXPOSE 5672
