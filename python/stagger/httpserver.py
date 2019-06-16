@@ -91,12 +91,10 @@ class RepoHandler(ModelObjectHandler):
 
         if request.method == "PUT":
             repo_data = await request.json()
-            repo = model.put_repo(repo_id, repo_data)
-            return repo
+            return model.put_repo(repo_id, repo_data)
 
         if request.method == "DELETE":
-            model.delete_repo(repo_id)
-            return
+            return model.delete_repo(repo_id)
 
         return model.repos[repo_id]
 
@@ -108,12 +106,10 @@ class BranchHandler(ModelObjectHandler):
 
         if request.method == "PUT":
             branch_data = await request.json()
-            branch = model.put_branch(repo_id, branch_id, branch_data)
-            return branch
+            return model.put_branch(repo_id, branch_id, branch_data)
 
         if request.method == "DELETE":
-            model.delete_branch(repo_id, branch_id)
-            return
+            return model.delete_branch(repo_id, branch_id)
 
         return model.repos[repo_id].branches[branch_id]
 
@@ -126,12 +122,10 @@ class TagHandler(ModelObjectHandler):
 
         if request.method == "PUT":
             tag_data = await request.json()
-            tag = model.put_tag(repo_id, branch_id, tag_id, tag_data)
-            return tag
+            return model.put_tag(repo_id, branch_id, tag_id, tag_data)
 
         if request.method == "DELETE":
-            model.delete_tag(repo_id, branch_id, tag_id)
-            return
+            return model.delete_tag(repo_id, branch_id, tag_id)
 
         return model.repos[repo_id].branches[branch_id].tags[tag_id]
 
@@ -145,12 +139,10 @@ class ArtifactHandler(ModelObjectHandler):
 
         if request.method == "PUT":
             artifact_data = await request.json()
-            artifact = model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
-            return artifact
+            return model.put_artifact(repo_id, branch_id, tag_id, artifact_id, artifact_data)
 
         if request.method == "DELETE":
-            model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
-            return
+            return model.delete_artifact(repo_id, branch_id, tag_id, artifact_id)
 
         return model.repos[repo_id].branches[branch_id].tags[tag_id].artifacts[artifact_id]
 
