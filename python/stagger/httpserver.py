@@ -88,6 +88,7 @@ class RepoHandler(ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
+        dry_run = request.query_params.get("dry-run") == "1"
 
         if request.method == "PUT":
             repo_data = await request.json()
