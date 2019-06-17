@@ -88,7 +88,9 @@ class RepoHandler(ModelObjectHandler):
     async def process(self, request):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
-        dry_run = request.query_params.get("dry-run") == "1"
+
+        if request.query_params.get("dry-run") == "1":
+            return
 
         if request.method == "PUT":
             repo_data = await request.json()
@@ -104,6 +106,9 @@ class BranchHandler(ModelObjectHandler):
         model = request.app.model
         repo_id = request.path_params["repo_id"]
         branch_id = request.path_params["branch_id"]
+
+        if request.query_params.get("dry-run") == "1":
+            return
 
         if request.method == "PUT":
             branch_data = await request.json()
@@ -121,6 +126,9 @@ class TagHandler(ModelObjectHandler):
         branch_id = request.path_params["branch_id"]
         tag_id = request.path_params["tag_id"]
 
+        if request.query_params.get("dry-run") == "1":
+            return
+
         if request.method == "PUT":
             tag_data = await request.json()
             return model.put_tag(repo_id, branch_id, tag_id, tag_data)
@@ -137,6 +145,9 @@ class ArtifactHandler(ModelObjectHandler):
         branch_id = request.path_params["branch_id"]
         tag_id = request.path_params["tag_id"]
         artifact_id = request.path_params["artifact_id"]
+
+        if request.query_params.get("dry-run") == "1":
+            return
 
         if request.method == "PUT":
             artifact_data = await request.json()

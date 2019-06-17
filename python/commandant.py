@@ -39,13 +39,14 @@ class Command(object):
     def __init__(self, home=None, name=None, standard_args=True):
         self.home = home
         self.name = name
+        self.standard_args = standard_args
 
         self._parser = _argparse.ArgumentParser()
         self._parser.formatter_class = _argparse.RawDescriptionHelpFormatter
 
         self._args = None
 
-        if standard_args:
+        if self.standard_args:
             self.add_argument("--quiet", action="store_true",
                               help="Print no logging to the console")
             self.add_argument("--verbose", action="store_true",
@@ -57,6 +58,10 @@ class Command(object):
             self.name = self._parser.prog
 
         self.id = self.name
+
+        self.quiet = False
+        self.verbose = False
+        self.init_only = False
 
     def add_argument(self, *args, **kwargs):
         self.parser.add_argument(*args, **kwargs)
@@ -104,9 +109,10 @@ class Command(object):
 
         self._args = self.parser.parse_args()
 
-        self.quiet = self.args.quiet
-        self.verbose = self.args.verbose
-        self.init_only = self.args.init_only
+        if self.standard_args:
+            self.quiet = self.args.quiet
+            self.verbose = self.args.verbose
+            self.init_only = self.args.init_only
 
     def run(self):
         raise NotImplementedError()

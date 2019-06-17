@@ -58,7 +58,7 @@ def git_current_branch(checkout_dir):
         return call_for_stdout("git rev-parse --abbrev-ref HEAD").strip()
 
 def git_make_archive(checkout_dir, output_dir, archive_stem):
-    output_dir = absolute_path(output_dir)
+    output_dir = get_absolute_path(output_dir)
     output_file = join(output_dir, "{0}.tar.gz".format(archive_stem))
 
     make_dir(output_dir)
@@ -88,10 +88,13 @@ def stagger_get_tag(repo, branch, tag, service_url=_stagger_http_url):
 
     return response.json()
 
-def stagger_put_tag(repo, branch, tag, tag_data, service_url=_stagger_http_url):
+def stagger_put_tag(repo, branch, tag, tag_data, service_url=_stagger_http_url, dry_run=False):
     assert service_url
 
     url = "{0}/api/repos/{1}/branches/{2}/tags/{3}".format(service_url, repo, branch, tag)
+
+    if dry_run:
+        url += "?dry-run=1"
 
     response = _requests.put(url, json=tag_data)
     response.raise_for_status()
@@ -108,10 +111,13 @@ def stagger_get_artifact(repo, branch, tag, artifact, service_url=_stagger_http_
 
     return response.json()
 
-def stagger_put_artifact(repo, branch, tag, artifact, artifact_data, service_url=_stagger_http_url):
+def stagger_put_artifact(repo, branch, tag, artifact, artifact_data, service_url=_stagger_http_url, dry_run=False):
     assert service_url
 
     url = "{0}/api/repos/{1}/branches/{2}/tags/{3}/artifacts/{4}".format(service_url, repo, branch, tag, artifact)
+
+    if dry_run:
+        url += "?dry-run=1"
 
     response = _requests.put(url, json=artifact_data)
     response.raise_for_status()
@@ -119,7 +125,7 @@ def stagger_put_artifact(repo, branch, tag, artifact, artifact_data, service_url
     return response.text
 
 def bodega_put_build(build_dir, build_data, service_url=_bodega_url):
-    build_url = _build_url(build_data, service_url=service_url)
+    build_url = bodega_build_url(build_data, service_url=service_url)
     session = _requests.Session()
 
     for fs_path in find(build_dir):
@@ -129,16 +135,23 @@ def bodega_put_build(build_dir, build_data, service_url=_bodega_url):
         relative_path = fs_path[len(build_dir) + 1:]
         request_url = "{0}/{1}".format(build_url, relative_path)
 
+        if build_data.id is None:
+            request_url += "?dry-run=1"
+
         with open(fs_path, "rb") as f:
             response = session.put(request_url, data=f)
             response.raise_for_status()
 
 def bodega_build_exists(build_data, service_url=_bodega_url):
-    build_url = _build_url(build_data, service_url=service_url)
+    build_url = bodega_build_url(build_data, service_url=service_url)
 
     response = _requests.get(build_url)
 
     return response.status_code == _requests.codes.ok
+
+def bodega_build_url(build_data, service_url=_bodega_url):
+    assert service_url
+    return "{0}/{1}/{2}/{3}".format(service_url, build_data.repo, build_data.branch, build_data.id)
 
 def rpm_make_yum_repo_config(build_data):
     repo = build_data.repo
@@ -161,7 +174,7 @@ def rpm_install_tag_packages(repo, branch, tag, *packages):
 
         call("sudo yum -y install {0}", package)
 
-def rpm_configure(input_spec_file, output_spec_file, source_dir, build_id):
+def rpm_configure(input_spec_file, output_spec_file, source_dir, build_id, **substitutions):
     assert input_spec_file.endswith(".in"), input_spec_file
     assert is_dir(join(source_dir, ".git"))
 
@@ -171,7 +184,7 @@ def rpm_configure(input_spec_file, output_spec_file, source_dir, build_id):
     commit = git_current_commit(source_dir)
     release = "0.{0}.{1}".format(build_id, commit[:8])
 
-    configure_file(input_spec_file, output_spec_file, release=release)
+    configure_file(input_spec_file, output_spec_file, release=release, **substitutions)
 
 def rpm_build(spec_file, source_dir, build_dir, build_data):
     records = call_for_stdout("rpm -q --qf '%{{name}}-%{{version}}\n' --specfile {0}", spec_file)
@@ -183,7 +196,7 @@ def rpm_build(spec_file, source_dir, build_dir, build_data):
     yum_repo_file = join(yum_repo_dir, "config.txt")
 
     git_make_archive(source_dir, join(build_dir, "SOURCES"), archive_stem)
-    call("rpmbuild -D '_topdir {0}' -ba {1}", absolute_path(build_dir), spec_file)
+    call("rpmbuild -D '_topdir {0}' -ba {1}", get_absolute_path(build_dir), spec_file)
     copy(rpms_dir, yum_repo_dir)
     call("createrepo {0}", yum_repo_dir)
     write(yum_repo_file, yum_repo_config)
@@ -230,7 +243,7 @@ def _rpm_make_tag_data(spec_file, source_dir, build_data):
 # mvn versions:use-dep-version -Dincludes=junit:junit -DdepVersion=1.0 -DforceVersion=true
 
 def maven_build(source_dir, build_dir, build_data, repo_urls=[], properties={}):
-    maven_repo_dir = absolute_path(join(build_dir, "repo"))
+    maven_repo_dir = get_absolute_path(join(build_dir, "repo"))
     settings_file = _make_settings_file(repo_urls)
 
     with working_dir(source_dir):
@@ -294,7 +307,7 @@ def maven_publish(source_dir, build_dir, build_data, tag):
     stagger_put_tag(build_data.repo, build_data.branch, tag, tag_data)
 
 def _maven_make_tag_data(source_dir, build_dir, build_data):
-    maven_repo_dir = absolute_path(join(build_dir, "repo"))
+    maven_repo_dir = get_absolute_path(join(build_dir, "repo"))
     artifacts = dict()
 
     with working_dir(source_dir):
@@ -324,14 +337,10 @@ def _maven_make_tag_data(source_dir, build_dir, build_data):
 
     return data
 
-def _build_url(build_data, service_url=_bodega_url):
-    assert service_url
-    return "{0}/{1}/{2}/{3}".format(service_url, build_data.repo, build_data.branch, build_data.id)
-
 def _yum_repo_url(build_data, service_url=_bodega_url):
     assert service_url
-    return "{0}/repo".format(_build_url(build_data, service_url=service_url))
+    return "{0}/repo".format(bodega_build_url(build_data, service_url=service_url))
 
 def _maven_repo_url(build_data, service_url=_bodega_url):
     assert service_url
-    return "{0}/repo".format(_build_url(build_data, service_url=service_url))
+    return "{0}/repo".format(bodega_build_url(build_data, service_url=service_url))

@@ -99,4 +99,4 @@ build/bin/%: bin/%.in
 
 .PHONY: update-%
 update-%:
-	curl "https://raw.githubusercontent.com/ssorj/$*/master/python/$*.py" -o python/$*.py
+	curl -sf "https://raw.githubusercontent.com/ssorj/$*/master/python/$*.py" -o python/$*.py
