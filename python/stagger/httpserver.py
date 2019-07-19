@@ -31,19 +31,19 @@ class HttpServer(Server):
     def __init__(self, app, host="", port=8080):
         super().__init__(app, host=host, port=port)
 
-        self.add_route("/healthz", endpoint=Handler, methods=["GET"])
-        self.add_route("/api/data", endpoint=DataHandler, methods=["GET", "HEAD"])
-        self.add_route("/api/repos/{repo_id}", endpoint=RepoHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
+        self.add_route("/healthz", endpoint=Handler(), methods=["GET"])
+        self.add_route("/api/data", endpoint=DataHandler(), methods=["GET", "HEAD"])
+        self.add_route("/api/repos/{repo_id}", endpoint=RepoHandler(), methods=["PUT", "DELETE", "GET", "HEAD"])
         self.add_route("/api/repos/{repo_id}/branches/{branch_id}",
-                       endpoint=BranchHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
+                       endpoint=BranchHandler(), methods=["PUT", "DELETE", "GET", "HEAD"])
         self.add_route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}",
-                       endpoint=TagHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
+                       endpoint=TagHandler(), methods=["PUT", "DELETE", "GET", "HEAD"])
         self.add_route("/api/repos/{repo_id}/branches/{branch_id}/tags/{tag_id}/artifacts/{artifact_id}",
-                       endpoint=ArtifactHandler, methods=["PUT", "DELETE", "GET", "HEAD"])
-        self.add_route("/", endpoint=HtmlHandler, methods=["GET", "HEAD"])
-        self.add_route("/tags/{repo_id}/{branch_id}/{tag_id}", endpoint=TagHtmlHandler, methods=["GET", "HEAD"])
+                       endpoint=ArtifactHandler(), methods=["PUT", "DELETE", "GET", "HEAD"])
+        self.add_route("/", endpoint=HtmlHandler(), methods=["GET", "HEAD"])
+        self.add_route("/tags/{repo_id}/{branch_id}/{tag_id}", endpoint=TagHtmlHandler(), methods=["GET", "HEAD"])
         self.add_route("/artifacts/{repo_id}/{branch_id}/{tag_id}/{artifact_id}",
-                       endpoint=ArtifactHtmlHandler, methods=["GET", "HEAD"])
+                       endpoint=ArtifactHtmlHandler(), methods=["GET", "HEAD"])
 
         self.add_static_files("", _os.path.join(app.home, "static"))
 
