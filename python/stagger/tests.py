@@ -216,7 +216,7 @@ def _test_events(session, path, data):
         put(api_url, data)
 
         with receive(events_url, 1) as proc:
-            sleep(0.2)
+            sleep(10)
             put(api_url, data)
             check_process(proc)
 

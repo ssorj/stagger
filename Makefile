@@ -68,7 +68,7 @@ run: build
 
 .PHONY: build-image
 build-image:
-	podman build --no-cache -qt ${IMAGE_NAME} .
+	podman build -qt ${IMAGE_NAME} .
 
 .PHONY: test-image
 test-image:
