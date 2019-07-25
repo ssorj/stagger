@@ -88,8 +88,16 @@ class MessagingHandler(_handlers.MessagingHandler):
         message = _proton.Message()
         message.content_type = "application/json"
         message.inferred = True
+        message.properties = {
+            _proton.symbol("type"): obj.type_name,
+            _proton.symbol("path"): obj.event_path,
+        }
         message.body = obj.json().encode("utf-8")
 
         for sender in self.subscriptions[obj.event_path].values():
+            if sender.credit > 0:
+                sender.send(message)
+
+        for sender in self.subscriptions["events"].values():
             if sender.credit > 0:
                 sender.send(message)

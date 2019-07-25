@@ -294,6 +294,7 @@ class ModelObject:
         self._digest = _binascii.crc32(json)
 
 class Repo(ModelObject):
+    type_name = "repo"
     _fields = ["source_url", "job_url", "branches"]
     _child_fields = ["branches"]
 
@@ -313,6 +314,7 @@ class Repo(ModelObject):
         return f"events/repos/{self._id}"
 
 class Branch(ModelObject):
+    type_name = "branch"
     _collection_name = "branches"
     _fields = ["tags"]
     _child_fields = ["tags"]
@@ -325,6 +327,7 @@ class Branch(ModelObject):
             self.tags[tag_id] = tag
 
 class Tag(ModelObject):
+    type_name = "tag"
     _collection_name = "tags"
     _fields = ["build_id", "build_url", "commit_id", "commit_url", "artifacts"]
     _child_fields = ["artifacts"]
@@ -337,6 +340,7 @@ class Tag(ModelObject):
             self.artifacts[artifact_id] = artifact
 
 class Artifact(ModelObject):
+    type_name = "artifact"
     _collection_name = "artifacts"
 
     @staticmethod

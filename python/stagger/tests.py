@@ -216,7 +216,12 @@ def _test_events(session, path, data):
         put(api_url, data)
 
         with receive(events_url, 1) as proc:
-            sleep(10)
+            sleep(5)
+            put(api_url, data)
+            check_process(proc)
+
+        with receive(f"{server.amqp_url}/events", 1) as proc:
+            sleep(5)
             put(api_url, data)
             check_process(proc)
 
