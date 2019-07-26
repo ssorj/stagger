@@ -148,5 +148,5 @@ def _parse_event_address(address):
             artifact_id = elems[8]
     except IndexError:
         pass
-    finally:
-        return repo_id, branch_id, tag_id, artifact_id
+
+    return repo_id, branch_id, tag_id, artifact_id
