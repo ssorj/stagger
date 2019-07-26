@@ -46,7 +46,7 @@ class Application:
         self.amqp_server = AmqpServer(self, port=self.amqp_port)
 
     def run(self):
-        _logging.basicConfig(level=_logging.DEBUG)
+        _logging.basicConfig(level=_logging.INFO)
 
         if not _os.path.exists(self.data_dir):
             _os.makedirs(self.data_dir)

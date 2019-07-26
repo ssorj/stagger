@@ -29,6 +29,7 @@ class AmqpServer(_threading.Thread):
     def __init__(self, app, host="", port=5672):
         super().__init__()
 
+        self.app = app
         self.host = host
         self.port = port
 
@@ -71,7 +72,31 @@ class MessagingHandler(_handlers.MessagingHandler):
             assert event.link.remote_source.address is not None
 
             address = event.link.remote_source.address
+
+            if address.startswith("/"):
+                address = address[1:]
+
             event.link.source.address = address
+
+            repo, branch, tag, artifact = None, None, None, None
+            repo_id, branch_id, tag_id, artifact_id = _parse_event_address(address)
+
+            try:
+                if repo_id is not None:
+                    repo = self.server.app.model.repos[repo_id]
+
+                if branch_id is not None:
+                    branch = repo.branches[branch_id]
+
+                if tag_id is not None:
+                    tag = branch.tags[tag_id]
+
+                if artifact_id is not None:
+                    artifact = tag.artifacts[artifact_id]
+            except KeyError:
+                event.connection.condition = _proton.Condition("amqp:not-found")
+                event.connection.close()
+                return
 
             self.subscriptions[address][event.link.name] = event.link
 
@@ -101,3 +126,27 @@ class MessagingHandler(_handlers.MessagingHandler):
         for sender in self.subscriptions["events"].values():
             if sender.credit > 0:
                 sender.send(message)
+
+def _parse_event_address(address):
+    assert not address.startswith("/")
+    assert address.startswith("events")
+
+    repo_id, branch_id, tag_id, artifact_id = None, None, None, None
+    elems = address.split("/")
+
+    try:
+        if elems[1] == "repos":
+            repo_id = elems[2]
+
+        if elems[3] == "branches":
+            branch_id = elems[4]
+
+        if elems[5] == "tags":
+            tag_id = elems[6]
+
+        if elems[7] == "artifacts":
+            artifact_id = elems[8]
+    except IndexError:
+        pass
+    finally:
+        return repo_id, branch_id, tag_id, artifact_id
