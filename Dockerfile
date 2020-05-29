@@ -19,7 +19,7 @@
 
 FROM registry.fedoraproject.org/fedora-minimal AS build
 
-RUN microdnf --nodocs install make findutils gcc python3-devel && microdnf clean all
+RUN microdnf install make findutils gcc python3-devel && microdnf clean all
 
 COPY . /src
 RUN mkdir /app
@@ -33,7 +33,7 @@ RUN chmod -R 775 /app
 
 FROM registry.fedoraproject.org/fedora-minimal
 
-RUN microdnf --nodocs install python3-qpid-proton python3-requests python3-ujson qtools && microdnf clean all
+RUN microdnf install python3-qpid-proton python3-requests python3-ujson qtools && microdnf clean all
 
 COPY --from=build /app /app
 
