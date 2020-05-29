@@ -78,27 +78,28 @@ class MessagingHandler(_handlers.MessagingHandler):
 
             event.link.source.address = address
 
-            repo, branch, tag, artifact = None, None, None, None
-            repo_id, branch_id, tag_id, artifact_id = _parse_event_address(address)
-
-            try:
-                if repo_id is not None:
-                    repo = self.server.app.model.repos[repo_id]
-
-                if branch_id is not None:
-                    branch = repo.branches[branch_id]
-
-                if tag_id is not None:
-                    tag = branch.tags[tag_id]
-
-                if artifact_id is not None:
-                    artifact = tag.artifacts[artifact_id]
-            except KeyError:
-                event.connection.condition = _proton.Condition("amqp:not-found")
-                event.connection.close()
-                return
-
+#            repo, branch, tag, artifact = None, None, None, None
+#            repo_id, branch_id, tag_id, artifact_id = _parse_event_address(address)
+#
+#            try:
+#                if repo_id is not None:
+#                    repo = self.server.app.model.repos[repo_id]
+#
+#                if branch_id is not None:
+#                    branch = repo.branches[branch_id]
+#
+#                if tag_id is not None:
+#                    tag = branch.tags[tag_id]
+#
+#                if artifact_id is not None:
+#                    artifact = tag.artifacts[artifact_id]
+#            except KeyError:
+#                event.connection.condition = _proton.Condition("amqp:not-found")
+#                event.connection.close()
+#                return
+#
             self.subscriptions[address][event.link.name] = event.link
+            _log.info("Link opened for '%s'" % address)
 
     def on_link_closing(self, event):
         if event.link.is_sender:
@@ -114,8 +115,8 @@ class MessagingHandler(_handlers.MessagingHandler):
         message.content_type = "application/json"
         message.inferred = True
         message.properties = {
-            _proton.symbol("type"): obj.type_name,
-            _proton.symbol("path"): obj.event_path,
+            "type": obj.type_name,
+            "path": obj.event_path,
         }
         message.body = obj.json().encode("utf-8")
 
