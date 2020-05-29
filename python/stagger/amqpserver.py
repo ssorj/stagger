@@ -129,7 +129,6 @@ class MessagingHandler(_handlers.MessagingHandler):
                 sender.send(message)
 
 def _parse_event_address(address):
-    _log.info("*** _parse_event_address addr=%s", address)
     assert not address.startswith("/")
     assert address.startswith("events")
 
