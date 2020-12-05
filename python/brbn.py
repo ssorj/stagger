@@ -129,9 +129,9 @@ class NotFoundResponse(PlainTextResponse):
     def __init__(self):
         super().__init__(f"Not found\n", 404)
 
-class NotModifiedResponse(PlainTextResponse):
+class NotModifiedResponse(Response):
     def __init__(self):
-        super().__init__("Not modified\n", 304)
+        super().__init__("", 304)
 
 class ServerErrorResponse(PlainTextResponse):
     def __init__(self, exception):
